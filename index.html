@@ -161,63 +161,116 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            font-weight: 600;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom-color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Pembayaran dengan QRIS</h1>
         
-        <!-- Form untuk membuat order -->
-        <div id="orderForm">
-            <div class="input-group">
-                <label for="name">Nama Lengkap</label>
-                <input type="text" id="name" class="form-control" placeholder="Masukkan nama lengkap Anda">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('payment')">Pembayaran</div>
+            <div class="tab" onclick="switchTab('notification')">Notifikasi</div>
+        </div>
+        
+        <!-- Pembayaran Tab -->
+        <div id="payment-tab" class="tab-content active">
+            <!-- Form untuk membuat order -->
+            <div id="orderForm">
+                <div class="input-group">
+                    <label for="name">Nama Lengkap</label>
+                    <input type="text" id="name" class="form-control" placeholder="Masukkan nama lengkap Anda">
+                </div>
+                
+                <div class="input-group">
+                    <label for="amount">Jumlah Pembayaran (Rp)</label>
+                    <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
+                </div>
+                
+                <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
+                
+                <div id="queueMessage" class="status-message warning" style="display: none;">
+                    Sedang ada pembayaran berlangsung. Mohon tunggu...
+                </div>
             </div>
             
-            <div class="input-group">
-                <label for="amount">Jumlah Pembayaran (Rp)</label>
-                <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
+            <!-- Container pembayaran QRIS -->
+            <div id="paymentContainer" class="payment-container">
+                <div class="order-details">
+                    <p><strong>Order ID:</strong> <span id="orderId"></span></p>
+                    <p><strong>Nama:</strong> <span id="customerName"></span></p>
+                    <p><strong>Jumlah:</strong> Rp <span id="paymentAmount"></span></p>
+                </div>
+                
+                <p>Silakan scan kode QRIS di bawah ini untuk melakukan pembayaran</p>
+                
+                <div class="timer">
+                    <span id="countdown">100</span> detik
+                </div>
+                
+                <img id="qrisImage" class="qris-image" src="" alt="QRIS Code">
+                
+                <p class="status-message info">
+                    Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
+                </p>
+                
+                <!-- Tombol ini hanya untuk simulasi pembayaran berhasil -->
+                <button id="simulatePaymentBtn" class="btn" onclick="simulateSuccessfulPayment()" style="margin-top: 15px;">
+                    Simulasi Pembayaran Berhasil
+                </button>
             </div>
             
-            <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
-            
-            <div id="queueMessage" class="status-message warning" style="display: none;">
-                Sedang ada pembayaran berlangsung. Mohon tunggu...
+            <!-- Container status pembayaran -->
+            <div id="statusContainer" style="display: none; margin-top: 20px;">
+                <div id="paymentStatus" class="status-message"></div>
+                <button id="newPaymentBtn" class="btn" onclick="resetForm()" style="margin-top: 15px;">
+                    Buat Pembayaran Baru
+                </button>
             </div>
         </div>
         
-        <!-- Container pembayaran QRIS -->
-        <div id="paymentContainer" class="payment-container">
-            <div class="order-details">
-                <p><strong>Order ID:</strong> <span id="orderId"></span></p>
-                <p><strong>Nama:</strong> <span id="customerName"></span></p>
-                <p><strong>Jumlah:</strong> Rp <span id="paymentAmount"></span></p>
+        <!-- Notifikasi Tab -->
+        <div id="notification-tab" class="tab-content">
+            <div class="input-group">
+                <label for="notificationAmount">Jumlah Pembayaran (Rp)</label>
+                <input type="number" id="notificationAmount" class="form-control" placeholder="Masukkan jumlah pembayaran">
             </div>
             
-            <p>Silakan scan kode QRIS di bawah ini untuk melakukan pembayaran</p>
+            <button id="sendNotificationBtn" class="btn" onclick="sendManualNotification()">
+                Kirim Notifikasi Pembayaran
+            </button>
             
-            <div class="timer">
-                <span id="countdown">50</span> detik
+            <div id="notificationStatus" class="status-message info" style="display: none; margin-top: 15px;">
+                Notifikasi berhasil dikirim!
             </div>
-            
-            <img id="qrisImage" class="qris-image" src="" alt="QRIS Code">
-            
-            <p class="status-message info">
-                Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
-            </p>
-            
-            <!-- Tombol ini hanya untuk simulasi pembayaran berhasil -->
-            <button id="simulatePaymentBtn" class="btn" onclick="simulateSuccessfulPayment()" style="margin-top: 15px;">
-                Simulasi Pembayaran Berhasil
-            </button>
-        </div>
-        
-        <!-- Container status pembayaran -->
-        <div id="statusContainer" style="display: none; margin-top: 20px;">
-            <div id="paymentStatus" class="status-message"></div>
-            <button id="newPaymentBtn" class="btn" onclick="resetForm()" style="margin-top: 15px;">
-                Buat Pembayaran Baru
-            </button>
         </div>
     </div>
     
@@ -228,12 +281,34 @@
         let orderId = null;
         let countdownInterval = null;
         let checkPaymentStatusInterval = null;
-        let websocket = null;
         const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         
         // Fungsi untuk mengambil elemen DOM
         function getElement(id) {
             return document.getElementById(id);
+        }
+        
+        // Fungsi untuk beralih tab
+        function switchTab(tabName) {
+            // Sembunyikan semua tab content
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Nonaktifkan semua tab
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Aktifkan tab yang dipilih
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Aktifkan tab button yang dipilih
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.textContent.toLowerCase().includes(tabName.toLowerCase())) {
+                    tab.classList.add('active');
+                }
+            });
         }
         
         // Fungsi untuk menampilkan notifikasi popup
@@ -323,7 +398,7 @@
                     getElement('paymentAmount').textContent = amount.toLocaleString('id-ID');
                     
                     // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.qrisImageURL || `qris.png`;
+                    getElement('qrisImage').src = data.qrisImageURL || `${API_URL}/static/qris.jpeg`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
@@ -357,7 +432,7 @@
         
         // Fungsi untuk memulai hitung mundur
         function startCountdown() {
-            let timeLeft = 50;
+            let timeLeft = 100;
             getElement('countdown').textContent = timeLeft;
             
             countdownInterval = setInterval(function() {
@@ -465,6 +540,66 @@
                 simulateBtn.disabled = false;
                 simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
                 alert('Terjadi kesalahan saat mengkonfirmasi pembayaran.');
+            });
+        }
+        
+        // Fungsi untuk mengirim notifikasi pembayaran manual
+        function sendManualNotification() {
+            const amount = getElement('notificationAmount').value.trim();
+            
+            // Validasi input
+            if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+                alert('Silakan masukkan jumlah pembayaran yang valid');
+                return;
+            }
+            
+            // Tampilkan loading state
+            const notifyBtn = getElement('sendNotificationBtn');
+            notifyBtn.disabled = true;
+            notifyBtn.innerHTML = '<div class="loading"></div> Memproses...';
+            
+            // Format notifikasi sesuai dengan format yang diharapkan backend
+            const notificationData = {
+                notification_text: `Pembayaran QRIS Rp ${amount} di Informatika Digital Bisnis, PRNGPNG telah diterima.`
+            };
+            
+            fetch(`${API_URL}/api/confirmByNotification`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(notificationData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                notifyBtn.disabled = false;
+                notifyBtn.innerHTML = 'Kirim Notifikasi Pembayaran';
+                
+                // Tampilkan status notifikasi
+                const statusElement = getElement('notificationStatus');
+                
+                if (data.success) {
+                    statusElement.textContent = `Notifikasi berhasil dikirim! Order ID: ${data.orderId || 'tidak ada'}`;
+                    statusElement.className = 'status-message success';
+                    showNotification('Notifikasi pembayaran berhasil dikirim!');
+                } else {
+                    statusElement.textContent = `Gagal mengirim notifikasi: ${data.message}`;
+                    statusElement.className = 'status-message error';
+                }
+                
+                statusElement.style.display = 'block';
+                
+                // Sembunyikan status setelah 5 detik
+                setTimeout(function() {
+                    statusElement.style.display = 'none';
+                }, 5000);
+            })
+            .catch(error => {
+                console.error('Error sending notification:', error);
+                notifyBtn.disabled = false;
+                notifyBtn.innerHTML = 'Kirim Notifikasi Pembayaran';
+                alert('Terjadi kesalahan saat mengirim notifikasi.');
             });
         }
     </script>
