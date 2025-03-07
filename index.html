@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembayaran QRIS</title>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 20px auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #45a049;
+        }
+        
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .payment-container {
+            display: none;
+            text-align: center;
+        }
+        
+        .qris-image {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .order-details {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: 700;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pembayaran dengan QRIS</h1>
+        
+        <!-- Form untuk membuat order -->
+        <div id="orderForm">
+            <div class="input-group">
+                <label for="name">Nama Lengkap</label>
+                <input type="text" id="name" class="form-control" placeholder="Masukkan nama lengkap Anda">
+            </div>
+            
+            <div class="input-group">
+                <label for="amount">Jumlah Pembayaran (Rp)</label>
+                <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
+            </div>
+            
+            <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
+            
+            <div id="queueMessage" class="status-message warning" style="display: none;">
+                Sedang ada pembayaran berlangsung. Mohon tunggu...
+            </div>
+        </div>
+        
+        <!-- Container pembayaran QRIS -->
+        <div id="paymentContainer" class="payment-container">
+            <div class="order-details">
+                <p><strong>Order ID:</strong> <span id="orderId"></span></p>
+                <p><strong>Nama:</strong> <span id="customerName"></span></p>
+                <p><strong>Jumlah:</strong> Rp <span id="paymentAmount"></span></p>
+            </div>
+            
+            <p>Silakan scan kode QRIS di bawah ini untuk melakukan pembayaran</p>
+            
+            <div class="timer">
+                <span id="countdown">50</span> detik
+            </div>
+            
+            <img id="qrisImage" class="qris-image" src="" alt="QRIS Code">
+            
+            <p class="status-message info">
+                Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
+            </p>
+            
+            <!-- Tombol ini hanya untuk simulasi pembayaran berhasil -->
+            <button id="simulatePaymentBtn" class="btn" onclick="simulateSuccessfulPayment()" style="margin-top: 15px;">
+                Simulasi Pembayaran Berhasil
+            </button>
+        </div>
+        
+        <!-- Container status pembayaran -->
+        <div id="statusContainer" style="display: none; margin-top: 20px;">
+            <div id="paymentStatus" class="status-message"></div>
+            <button id="newPaymentBtn" class="btn" onclick="resetForm()" style="margin-top: 15px;">
+                Buat Pembayaran Baru
+            </button>
+        </div>
+    </div>
+    
+    <!-- Notification container -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let orderId = null;
+        let countdownInterval = null;
+        let checkPaymentStatusInterval = null;
+        let websocket = null;
+        const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
+        
+        // Fungsi untuk mengambil elemen DOM
+        function getElement(id) {
+            return document.getElementById(id);
+        }
+        
+        // Fungsi untuk menampilkan notifikasi popup
+        function showNotification(message) {
+            const notification = getElement('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(function() {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Cek status antrian saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            checkQueueStatus();
+        });
+        
+        // Fungsi untuk memeriksa status antrian
+        function checkQueueStatus() {
+            fetch(`${API_URL}/api/queueStatus`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.isProcessing) {
+                        // Jika ada pembayaran berlangsung, tampilkan pesan antrian
+                        getElement('queueMessage').style.display = 'block';
+                        getElement('submitBtn').disabled = true;
+                        
+                        // Periksa kembali setelah 5 detik
+                        setTimeout(checkQueueStatus, 5000);
+                    } else {
+                        getElement('queueMessage').style.display = 'none';
+                        getElement('submitBtn').disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking queue status:', error);
+                });
+        }
+        
+        // Fungsi untuk membuat order
+        function createOrder() {
+            const name = getElement('name').value.trim();
+            const amount = parseFloat(getElement('amount').value.trim());
+            
+            // Validasi input
+            if (!name) {
+                alert('Silakan masukkan nama Anda');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('Silakan masukkan jumlah pembayaran yang valid');
+                return;
+            }
+            
+            // Tampilkan loading state
+            getElement('submitBtn').disabled = true;
+            getElement('submitBtn').innerHTML = '<div class="loading"></div> Memproses...';
+            
+            // Kirim permintaan ke server
+            const requestData = {
+                name: name,
+                amount: amount
+            };
+            
+            fetch(`${API_URL}/api/createOrder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset loading state
+                getElement('submitBtn').disabled = false;
+                getElement('submitBtn').innerHTML = 'Buat Pembayaran';
+                
+                if (data.success) {
+                    // Simpan order ID
+                    orderId = data.orderId;
+                    
+                    // Update tampilan dengan detail pembayaran
+                    getElement('orderId').textContent = data.orderId;
+                    getElement('customerName').textContent = name;
+                    getElement('paymentAmount').textContent = amount.toLocaleString('id-ID');
+                    
+                    // Tampilkan gambar QRIS
+                    getElement('qrisImage').src = data.qrisImageURL || `qris.png`;
+                    
+                    // Sembunyikan form dan tampilkan container pembayaran
+                    getElement('orderForm').style.display = 'none';
+                    getElement('paymentContainer').style.display = 'block';
+                    
+                    // Mulai hitung mundur
+                    startCountdown();
+                    
+                    // Periksa status pembayaran setiap 3 detik
+                    checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
+                    
+                } else if (data.queueStatus) {
+                    // Jika ada antrian, tampilkan pesan
+                    getElement('queueMessage').style.display = 'block';
+                    getElement('submitBtn').disabled = true;
+                    
+                    // Periksa kembali setelah 5 detik
+                    setTimeout(checkQueueStatus, 5000);
+                } else {
+                    // Tampilkan pesan error
+                    alert('Gagal membuat pembayaran: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating order:', error);
+                getElement('submitBtn').disabled = false;
+                getElement('submitBtn').innerHTML = 'Buat Pembayaran';
+                alert('Terjadi kesalahan. Silakan coba lagi.');
+            });
+        }
+        
+        // Fungsi untuk memulai hitung mundur
+        function startCountdown() {
+            let timeLeft = 50;
+            getElement('countdown').textContent = timeLeft;
+            
+            countdownInterval = setInterval(function() {
+                timeLeft--;
+                getElement('countdown').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    // Tampilkan pesan pembayaran kedaluwarsa
+                    displayPaymentStatus('failed', 'Pembayaran kedaluwarsa. Silakan coba lagi.');
+                }
+            }, 1000);
+        }
+        
+        // Fungsi untuk memeriksa status pembayaran
+        function checkPaymentStatus() {
+            if (!orderId) return;
+            
+            fetch(`${API_URL}/api/checkPayment/${orderId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.status === 'success') {
+                            clearInterval(checkPaymentStatusInterval);
+                            displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+                        } else if (data.status === 'failed') {
+                            clearInterval(checkPaymentStatusInterval);
+                            displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking payment status:', error);
+                });
+        }
+        
+        // Fungsi untuk menampilkan status pembayaran
+        function displayPaymentStatus(status, message) {
+            // Hentikan countdown
+            clearInterval(countdownInterval);
+            
+            // Sembunyikan container pembayaran
+            getElement('paymentContainer').style.display = 'none';
+            
+            // Update dan tampilkan status
+            const statusElement = getElement('paymentStatus');
+            statusElement.textContent = message;
+            
+            if (status === 'success') {
+                statusElement.className = 'status-message success';
+            } else {
+                statusElement.className = 'status-message error';
+            }
+            
+            // Tampilkan container status
+            getElement('statusContainer').style.display = 'block';
+        }
+        
+        // Fungsi untuk mereset form (mulai dari awal)
+        function resetForm() {
+            // Reset form input
+            getElement('name').value = '';
+            getElement('amount').value = '';
+            
+            // Reset status
+            orderId = null;
+            clearInterval(countdownInterval);
+            clearInterval(checkPaymentStatusInterval);
+            
+            // Reset tampilan
+            getElement('statusContainer').style.display = 'none';
+            getElement('paymentContainer').style.display = 'none';
+            getElement('orderForm').style.display = 'block';
+            
+            // Periksa status antrian
+            checkQueueStatus();
+        }
+        
+        // Fungsi untuk mensimulasikan pembayaran berhasil (hanya untuk demo)
+        function simulateSuccessfulPayment() {
+            if (!orderId) return;
+            
+            const simulateBtn = getElement('simulatePaymentBtn');
+            simulateBtn.disabled = true;
+            simulateBtn.innerHTML = '<div class="loading"></div> Memproses...';
+            
+            fetch(`${API_URL}/api/confirmPayment/${orderId}`, {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                simulateBtn.disabled = false;
+                simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
+                
+                if (data.success) {
+                    clearInterval(checkPaymentStatusInterval);
+                    displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+                    showNotification('Pembayaran berhasil dikonfirmasi!');
+                } else {
+                    alert('Gagal mengkonfirmasi pembayaran: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error simulating payment:', error);
+                simulateBtn.disabled = false;
+                simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
+                alert('Terjadi kesalahan saat mengkonfirmasi pembayaran.');
+            });
+        }
+    </script>
+</body>
+</html>
