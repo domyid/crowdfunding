@@ -207,6 +207,32 @@
             color: #e74c3c;
             font-weight: bold;
         }
+        
+        .stats-card {
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .stats-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .stats-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stats-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -215,7 +241,35 @@
         
         <div class="tabs">
             <div class="tab active" onclick="switchTab('payment')">Pembayaran</div>
-            <!-- <div class="tab" onclick="switchTab('notification')">Notifikasi</div> -->
+            <div class="tab" onclick="switchTab('notification')">Notifikasi</div>
+            <div class="tab" onclick="switchTab('stats')">Statistik</div>
+        </div>
+        
+        <!-- Stats Dashboard -->
+        <div id="stats-tab" class="tab-content">
+            <h2>Statistik Pembayaran</h2>
+            
+            <div class="stats-card">
+                <div class="stats-title">Total Pembayaran</div>
+                <div class="stats-value" id="totalAmount">Rp 0</div>
+                <div class="stats-label">Total nilai pembayaran yang berhasil</div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="stats-title">Jumlah Transaksi</div>
+                <div class="stats-value" id="totalCount">0</div>
+                <div class="stats-label">Total transaksi yang berhasil</div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="stats-title">Terakhir Diperbarui</div>
+                <div class="stats-value" id="lastUpdated">-</div>
+                <div class="stats-label">Waktu pembaruan terakhir</div>
+            </div>
+            
+            <button id="refreshStatsBtn" class="btn" onclick="fetchPaymentStats()" style="margin-top: 15px;">
+                Refresh Statistik
+            </button>
         </div>
         
         <!-- Queue Info -->
@@ -257,7 +311,7 @@
                 <p>Silakan scan kode QRIS di bawah ini untuk melakukan pembayaran</p>
                 
                 <div class="timer">
-                    <span id="countdown">100</span> detik
+                    <span id="countdown">50</span> detik
                 </div>
                 
                 <img id="qrisImage" class="qris-image" src="" alt="QRIS Code">
@@ -334,6 +388,53 @@
                     tab.classList.add('active');
                 }
             });
+            
+            // Jika tab statistik dipilih, perbarui data
+            if (tabName === 'stats') {
+                fetchPaymentStats();
+            }
+        }
+        
+        // Format number to currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+        
+        // Format date to readable format
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Fetch payment statistics
+        function fetchPaymentStats() {
+            const refreshBtn = getElement('refreshStatsBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<div class="loading"></div> Memperbarui...';
+            
+            fetch(`${API_URL}/api/totalPayments`)
+                .then(response => response.json())
+                .then(data => {
+                    getElement('totalAmount').textContent = `Rp ${formatCurrency(data.totalAmount)}`;
+                    getElement('totalCount').textContent = formatCurrency(data.count);
+                    getElement('lastUpdated').textContent = formatDate(data.lastUpdated);
+                    
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = 'Refresh Statistik';
+                })
+                .catch(error => {
+                    console.error('Error fetching payment stats:', error);
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = 'Refresh Statistik';
+                    showNotification('Gagal memuat data statistik');
+                });
         }
         
         // Fungsi untuk menampilkan notifikasi popup
@@ -356,7 +457,19 @@
         
         // Cek status antrian saat halaman dimuat
         document.addEventListener('DOMContentLoaded', function() {
-            checkQueueStatus();
+            // Initialize the system
+            fetch(`${API_URL}/api/init`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("System initialized:", data);
+                    // After initialization, check queue status
+                    checkQueueStatus();
+                })
+                .catch(error => {
+                    console.error('Error initializing system:', error);
+                    // Still try to check queue status
+                    checkQueueStatus();
+                });
         });
         
         // Fungsi untuk memulai hitung mundur antrian
@@ -381,45 +494,43 @@
         
         // Fungsi untuk memeriksa status antrian
         function checkQueueStatus() {
-    fetch(`${API_URL}/api/queueStatus`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Queue status:", data);
-            
-            // Assume queue is not active if we can't get a definitive answer
-            getElement('queueInfo').style.display = 'none';
-            getElement('queueMessage').style.display = 'none';
-            getElement('submitBtn').disabled = false;
-            
-            if (data.success && data.isProcessing) {
-                // Only show queue if we have confirmed it's active
-                getElement('queueInfo').style.display = 'block';
-                getElement('queueMessage').style.display = 'block';
-                getElement('submitBtn').disabled = true;
-                
-                if (data.expiryTime) {
-                    startQueueTimer(data.expiryTime);
-                }
-                
-                setTimeout(checkQueueStatus, 5000);
-            }
-        })
-        .catch(error => {
-            console.error('Error checking queue status:', error);
-            // If server error, assume no active queue to allow transactions
-            getElement('queueInfo').style.display = 'none';
-            getElement('queueMessage').style.display = 'none';
-            getElement('submitBtn').disabled = false;
-            
-            // Try again after a longer delay
-            setTimeout(checkQueueStatus, 10000);
-        });
-}
+            fetch(`${API_URL}/api/queueStatus`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Queue status:", data);
+                    
+                    if (data.success && data.isProcessing) {
+                        // Jika ada pembayaran berlangsung, tampilkan info antrian
+                        getElement('queueInfo').style.display = 'block';
+                        getElement('queueMessage').style.display = 'block';
+                        getElement('submitBtn').disabled = true;
+                        
+                        // Mulai hitung mundur antrian
+                        if (data.expiryTime) {
+                            startQueueTimer(data.expiryTime);
+                        }
+                        
+                        // Periksa kembali setelah 5 detik
+                        setTimeout(checkQueueStatus, 5000);
+                    } else {
+                        // Jika tidak ada antrian, sembunyikan pesan dan aktifkan form
+                        getElement('queueInfo').style.display = 'none';
+                        getElement('queueMessage').style.display = 'none';
+                        getElement('submitBtn').disabled = false;
+                        clearInterval(queueTimerInterval);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking queue status:', error);
+                    // Coba lagi setelah beberapa saat jika terjadi error
+                    setTimeout(checkQueueStatus, 10000);
+                });
+        }
         
         // Fungsi untuk membuat order
         function createOrder() {
@@ -454,7 +565,12 @@
                 },
                 body: JSON.stringify(requestData),
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log("Create order response:", data);
                 
@@ -469,10 +585,10 @@
                     // Update tampilan dengan detail pembayaran
                     getElement('orderId').textContent = data.orderId;
                     getElement('customerName').textContent = name;
-                    getElement('paymentAmount').textContent = amount.toLocaleString('id-ID');
+                    getElement('paymentAmount').textContent = formatCurrency(amount);
                     
                     // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.qrisImageURL || `qris.png`;
+                    getElement('qrisImage').src = data.qrisImageUrl || `${API_URL}/static/qris.jpeg`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
@@ -513,7 +629,7 @@
         
         // Fungsi untuk memulai hitung mundur
         function startCountdown() {
-            let timeLeft = 100;
+            let timeLeft = 50;
             getElement('countdown').textContent = timeLeft;
             
             countdownInterval = setInterval(function() {
@@ -533,7 +649,12 @@
             if (!orderId) return;
             
             fetch(`${API_URL}/api/checkPayment/${orderId}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     console.log("Payment status:", data);
                     
@@ -541,6 +662,7 @@
                         if (data.status === 'success') {
                             clearInterval(checkPaymentStatusInterval);
                             displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+                            fetchPaymentStats(); // Update stats after successful payment
                         } else if (data.status === 'failed') {
                             clearInterval(checkPaymentStatusInterval);
                             displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
@@ -605,7 +727,12 @@
             fetch(`${API_URL}/api/confirmPayment/${orderId}`, {
                 method: 'POST',
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 simulateBtn.disabled = false;
                 simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
@@ -614,6 +741,7 @@
                     clearInterval(checkPaymentStatusInterval);
                     displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
                     showNotification('Pembayaran berhasil dikonfirmasi!');
+                    fetchPaymentStats(); // Update stats after successful payment
                 } else {
                     alert('Gagal mengkonfirmasi pembayaran: ' + data.message);
                 }
@@ -653,7 +781,12 @@
                 },
                 body: JSON.stringify(notificationData),
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 console.log("Notification response:", data);
                 
@@ -671,6 +804,12 @@
                     
                     // Refresh queue status after successful notification
                     checkQueueStatus();
+                    
+                    // Update stats after successful payment
+                    fetchPaymentStats();
+                    
+                    // Clear the input field
+                    getElement('notificationAmount').value = '';
                 } else {
                     statusElement.textContent = `Gagal mengirim notifikasi: ${data.message}`;
                     statusElement.className = 'status-message error';
