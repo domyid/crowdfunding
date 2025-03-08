@@ -198,7 +198,7 @@
         
         <div class="tabs">
             <div class="tab active" onclick="switchTab('payment')">Pembayaran</div>
-            <div class="tab" onclick="switchTab('notification')">Notifikasi</div>
+            <!-- <div class="tab" onclick="switchTab('notification')">Notifikasi</div> -->
         </div>
         
         <!-- Pembayaran Tab -->
@@ -398,7 +398,7 @@
                     getElement('paymentAmount').textContent = amount.toLocaleString('id-ID');
                     
                     // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.qrisImageURL || `${API_URL}/static/qris.jpeg`;
+                    getElement('qrisImage').src = data.qrisImageURL || `qris.png`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
