@@ -190,6 +190,23 @@
         .tab-content.active {
             display: block;
         }
+        
+        .queue-info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .queue-info p {
+            margin: 5px 0;
+        }
+        
+        .queue-timer {
+            color: #e74c3c;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -199,6 +216,13 @@
         <div class="tabs">
             <div class="tab active" onclick="switchTab('payment')">Pembayaran</div>
             <!-- <div class="tab" onclick="switchTab('notification')">Notifikasi</div> -->
+        </div>
+        
+        <!-- Queue Info -->
+        <div id="queueInfo" class="queue-info" style="display: none;">
+            <p><strong>Status:</strong> Sedang ada pembayaran berlangsung</p>
+            <p><strong>Berakhir dalam:</strong> <span id="queueTimer" class="queue-timer">00:00</span></p>
+            <p>Mohon tunggu hingga pembayaran selesai atau waktu habis.</p>
         </div>
         
         <!-- Pembayaran Tab -->
@@ -281,6 +305,7 @@
         let orderId = null;
         let countdownInterval = null;
         let checkPaymentStatusInterval = null;
+        let queueTimerInterval = null;
         const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         
         // Fungsi untuk mengambil elemen DOM
@@ -322,30 +347,70 @@
             }, 5000);
         }
         
+        // Format waktu dari detik ke MM:SS
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
         // Cek status antrian saat halaman dimuat
         document.addEventListener('DOMContentLoaded', function() {
             checkQueueStatus();
         });
+        
+        // Fungsi untuk memulai hitung mundur antrian
+        function startQueueTimer(expiryTimeStr) {
+            clearInterval(queueTimerInterval);
+            
+            const expiryTime = new Date(expiryTimeStr);
+            const queueTimerElement = getElement('queueTimer');
+            
+            queueTimerInterval = setInterval(function() {
+                const now = new Date();
+                const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
+                
+                if (timeLeft <= 0) {
+                    clearInterval(queueTimerInterval);
+                    checkQueueStatus(); // Periksa ulang status antrian setelah waktu habis
+                } else {
+                    queueTimerElement.textContent = formatTime(timeLeft);
+                }
+            }, 1000);
+        }
         
         // Fungsi untuk memeriksa status antrian
         function checkQueueStatus() {
             fetch(`${API_URL}/api/queueStatus`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Queue status:", data);
+                    
                     if (data.success && data.isProcessing) {
-                        // Jika ada pembayaran berlangsung, tampilkan pesan antrian
+                        // Jika ada pembayaran berlangsung, tampilkan info antrian
+                        getElement('queueInfo').style.display = 'block';
                         getElement('queueMessage').style.display = 'block';
                         getElement('submitBtn').disabled = true;
+                        
+                        // Mulai hitung mundur antrian
+                        if (data.expiryTime) {
+                            startQueueTimer(data.expiryTime);
+                        }
                         
                         // Periksa kembali setelah 5 detik
                         setTimeout(checkQueueStatus, 5000);
                     } else {
+                        // Jika tidak ada antrian, sembunyikan pesan dan aktifkan form
+                        getElement('queueInfo').style.display = 'none';
                         getElement('queueMessage').style.display = 'none';
                         getElement('submitBtn').disabled = false;
+                        clearInterval(queueTimerInterval);
                     }
                 })
                 .catch(error => {
                     console.error('Error checking queue status:', error);
+                    // Coba lagi setelah beberapa saat jika terjadi error
+                    setTimeout(checkQueueStatus, 10000);
                 });
         }
         
@@ -384,6 +449,8 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log("Create order response:", data);
+                
                 // Reset loading state
                 getElement('submitBtn').disabled = false;
                 getElement('submitBtn').innerHTML = 'Buat Pembayaran';
@@ -411,12 +478,19 @@
                     checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
                     
                 } else if (data.queueStatus) {
-                    // Jika ada antrian, tampilkan pesan
+                    // Jika ada antrian, tampilkan pesan dan info antrian
                     getElement('queueMessage').style.display = 'block';
+                    getElement('queueInfo').style.display = 'block';
                     getElement('submitBtn').disabled = true;
+                    
+                    if (data.expiryTime) {
+                        startQueueTimer(data.expiryTime);
+                    }
                     
                     // Periksa kembali setelah 5 detik
                     setTimeout(checkQueueStatus, 5000);
+                    
+                    showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
                 } else {
                     // Tampilkan pesan error
                     alert('Gagal membuat pembayaran: ' + data.message);
@@ -454,6 +528,8 @@
             fetch(`${API_URL}/api/checkPayment/${orderId}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Payment status:", data);
+                    
                     if (data.success) {
                         if (data.status === 'success') {
                             clearInterval(checkPaymentStatusInterval);
@@ -572,6 +648,8 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log("Notification response:", data);
+                
                 // Reset button state
                 notifyBtn.disabled = false;
                 notifyBtn.innerHTML = 'Kirim Notifikasi Pembayaran';
@@ -583,6 +661,9 @@
                     statusElement.textContent = `Notifikasi berhasil dikirim! Order ID: ${data.orderId || 'tidak ada'}`;
                     statusElement.className = 'status-message success';
                     showNotification('Notifikasi pembayaran berhasil dikirim!');
+                    
+                    // Refresh queue status after successful notification
+                    checkQueueStatus();
                 } else {
                     statusElement.textContent = `Gagal mengirim notifikasi: ${data.message}`;
                     statusElement.className = 'status-message error';
