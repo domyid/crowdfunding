@@ -311,7 +311,7 @@
                 <p>Silakan scan kode QRIS di bawah ini untuk melakukan pembayaran</p>
                 
                 <div class="timer">
-                    <span id="countdown">50</span> detik
+                    <span id="countdown">100</span> detik
                 </div>
                 
                 <img id="qrisImage" class="qris-image" src="" alt="QRIS Code">
@@ -588,7 +588,7 @@
                     getElement('paymentAmount').textContent = formatCurrency(amount);
                     
                     // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.qrisImageUrl || `${API_URL}/static/qris.jpeg`;
+                    getElement('qrisImage').src = data.qrisImageUrl || `qris.png`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
@@ -629,7 +629,7 @@
         
         // Fungsi untuk memulai hitung mundur
         function startCountdown() {
-            let timeLeft = 50;
+            let timeLeft = 100;
             getElement('countdown').textContent = timeLeft;
             
             countdownInterval = setInterval(function() {
