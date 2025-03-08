@@ -381,38 +381,45 @@
         
         // Fungsi untuk memeriksa status antrian
         function checkQueueStatus() {
-            fetch(`${API_URL}/api/queueStatus`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Queue status:", data);
-                    
-                    if (data.success && data.isProcessing) {
-                        // Jika ada pembayaran berlangsung, tampilkan info antrian
-                        getElement('queueInfo').style.display = 'block';
-                        getElement('queueMessage').style.display = 'block';
-                        getElement('submitBtn').disabled = true;
-                        
-                        // Mulai hitung mundur antrian
-                        if (data.expiryTime) {
-                            startQueueTimer(data.expiryTime);
-                        }
-                        
-                        // Periksa kembali setelah 5 detik
-                        setTimeout(checkQueueStatus, 5000);
-                    } else {
-                        // Jika tidak ada antrian, sembunyikan pesan dan aktifkan form
-                        getElement('queueInfo').style.display = 'none';
-                        getElement('queueMessage').style.display = 'none';
-                        getElement('submitBtn').disabled = false;
-                        clearInterval(queueTimerInterval);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking queue status:', error);
-                    // Coba lagi setelah beberapa saat jika terjadi error
-                    setTimeout(checkQueueStatus, 10000);
-                });
-        }
+    fetch(`${API_URL}/api/queueStatus`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Queue status:", data);
+            
+            // Assume queue is not active if we can't get a definitive answer
+            getElement('queueInfo').style.display = 'none';
+            getElement('queueMessage').style.display = 'none';
+            getElement('submitBtn').disabled = false;
+            
+            if (data.success && data.isProcessing) {
+                // Only show queue if we have confirmed it's active
+                getElement('queueInfo').style.display = 'block';
+                getElement('queueMessage').style.display = 'block';
+                getElement('submitBtn').disabled = true;
+                
+                if (data.expiryTime) {
+                    startQueueTimer(data.expiryTime);
+                }
+                
+                setTimeout(checkQueueStatus, 5000);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking queue status:', error);
+            // If server error, assume no active queue to allow transactions
+            getElement('queueInfo').style.display = 'none';
+            getElement('queueMessage').style.display = 'none';
+            getElement('submitBtn').disabled = false;
+            
+            // Try again after a longer delay
+            setTimeout(checkQueueStatus, 10000);
+        });
+}
         
         // Fungsi untuk membuat order
         function createOrder() {
