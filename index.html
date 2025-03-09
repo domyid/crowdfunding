@@ -249,11 +249,11 @@
         <div id="stats-tab" class="tab-content">
             <h2>Statistik Pembayaran</h2>
             
-            <div class="stats-card">
+            <!-- <div class="stats-card">
                 <div class="stats-title">Total Pembayaran</div>
                 <div class="stats-value" id="totalAmount">Rp 0</div>
                 <div class="stats-label">Total nilai pembayaran yang berhasil</div>
-            </div>
+            </div> -->
             
             <div class="stats-card">
                 <div class="stats-title">Jumlah Transaksi</div>
@@ -321,9 +321,9 @@
                 </p>
                 
                 <!-- Tombol ini hanya untuk simulasi pembayaran berhasil -->
-                <button id="simulatePaymentBtn" class="btn" onclick="simulateSuccessfulPayment()" style="margin-top: 15px;">
+                <!-- <button id="simulatePaymentBtn" class="btn" onclick="simulateSuccessfulPayment()" style="margin-top: 15px;">
                     Simulasi Pembayaran Berhasil
-                </button>
+                </button> -->
             </div>
             
             <!-- Container status pembayaran -->
@@ -717,42 +717,42 @@
         }
         
         // Fungsi untuk mensimulasikan pembayaran berhasil (hanya untuk demo)
-        function simulateSuccessfulPayment() {
-            if (!orderId) return;
+        // function simulateSuccessfulPayment() {
+        //     if (!orderId) return;
             
-            const simulateBtn = getElement('simulatePaymentBtn');
-            simulateBtn.disabled = true;
-            simulateBtn.innerHTML = '<div class="loading"></div> Memproses...';
+        //     const simulateBtn = getElement('simulatePaymentBtn');
+        //     simulateBtn.disabled = true;
+        //     simulateBtn.innerHTML = '<div class="loading"></div> Memproses...';
             
-            fetch(`${API_URL}/api/confirmPayment/${orderId}`, {
-                method: 'POST',
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                simulateBtn.disabled = false;
-                simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
+        //     fetch(`${API_URL}/api/confirmPayment/${orderId}`, {
+        //         method: 'POST',
+        //     })
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             throw new Error(`HTTP error! Status: ${response.status}`);
+        //         }
+        //         return response.json();
+        //     })
+        //     .then(data => {
+        //         simulateBtn.disabled = false;
+        //         simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
                 
-                if (data.success) {
-                    clearInterval(checkPaymentStatusInterval);
-                    displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
-                    showNotification('Pembayaran berhasil dikonfirmasi!');
-                    fetchPaymentStats(); // Update stats after successful payment
-                } else {
-                    alert('Gagal mengkonfirmasi pembayaran: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error simulating payment:', error);
-                simulateBtn.disabled = false;
-                simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
-                alert('Terjadi kesalahan saat mengkonfirmasi pembayaran.');
-            });
-        }
+        //         if (data.success) {
+        //             clearInterval(checkPaymentStatusInterval);
+        //             displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+        //             showNotification('Pembayaran berhasil dikonfirmasi!');
+        //             fetchPaymentStats(); // Update stats after successful payment
+        //         } else {
+        //             alert('Gagal mengkonfirmasi pembayaran: ' + data.message);
+        //         }
+        //     })
+        //     .catch(error => {
+        //         console.error('Error simulating payment:', error);
+        //         simulateBtn.disabled = false;
+        //         simulateBtn.innerHTML = 'Simulasi Pembayaran Berhasil';
+        //         alert('Terjadi kesalahan saat mengkonfirmasi pembayaran.');
+        //     });
+        // }
         
         // Fungsi untuk mengirim notifikasi pembayaran manual
         function sendManualNotification() {
