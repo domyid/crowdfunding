@@ -295,6 +295,7 @@
                 <p>Silakan transfer MicroBitcoin ke alamat wallet berikut:</p>
                 
                 <div class="receiver-wallet" id="receiverWallet">BXheTnryBeec7Ere3zsuRmWjB1LiyCFpec</div>
+                <button class="btn" style="margin: 10px 0; background-color: #007bff;" onclick="copyWalletAddress()">Salin Alamat Wallet</button>
                 
                 <div class="payment-instruction">
                     <h3>Petunjuk Pembayaran:</h3>
@@ -302,10 +303,15 @@
                         <li>Buka aplikasi wallet MicroBitcoin Anda</li>
                         <li>Pilih opsi "Send" atau "Transfer"</li>
                         <li>Masukkan alamat wallet di atas sebagai tujuan</li>
-                        <li>Masukkan jumlah yang ingin Anda transfer</li>
+                        <li>Masukkan jumlah MicroBitcoin yang ingin Anda transfer</li>
                         <li>Konfirmasi dan kirim transaksi</li>
+                        <li>Sistem akan otomatis memeriksa pembayaran Anda</li>
                         <li>Tunggu hingga transaksi Anda dikonfirmasi oleh jaringan</li>
                     </ol>
+                </div>
+                
+                <div id="checkingStatus" class="status-message info" style="margin-top: 15px;">
+                    Memeriksa pembayaran... Sistem akan terus memantau transaksi hingga batas waktu selesai.
                 </div>
                 
                 <div class="timer">
@@ -339,6 +345,19 @@
         let queueTimerInterval = null;
         const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         const RECEIVER_WALLET = "BXheTnryBeec7Ere3zsuRmWjB1LiyCFpec";
+        
+        // Function to copy wallet address to clipboard
+        function copyWalletAddress() {
+            const walletAddress = document.getElementById('receiverWallet').textContent;
+            navigator.clipboard.writeText(walletAddress)
+                .then(() => {
+                    showNotification('Alamat wallet berhasil disalin!');
+                })
+                .catch(err => {
+                    console.error('Error copying wallet address: ', err);
+                    showNotification('Gagal menyalin alamat wallet');
+                });
+        }
         
         // Fungsi untuk mengambil elemen DOM
         function getElement(id) {
@@ -562,7 +581,7 @@
         
         // Fungsi untuk memulai hitung mundur
         function startCountdown() {
-            let timeLeft = 600; // 5 menit
+            let timeLeft = 300; // 5 menit
             getElement('countdown').textContent = timeLeft;
             
             countdownInterval = setInterval(function() {
@@ -582,6 +601,10 @@
         function checkPaymentStatus() {
             if (!orderId) return;
             
+            // Update the checking status message
+            const checkingStatus = getElement('checkingStatus');
+            checkingStatus.innerHTML = `<div class="loading" style="border-color: rgba(0,0,0,.2); border-top-color: #666;"></div> Memeriksa pembayaran di blockchain MicroBitcoin...`;
+            
             fetch(`${API_URL}/api/merchcoin/checkPayment/${orderId}`)
                 .then(response => {
                     if (!response.ok) {
@@ -593,7 +616,15 @@
                     console.log("Payment status:", data);
                     
                     if (data.success) {
+                        // Update the remaining time
+                        if (data.remainingTime !== undefined) {
+                            const minutes = Math.floor(data.remainingTime / 60);
+                            const seconds = data.remainingTime % 60;
+                            getElement('countdown').textContent = data.remainingTime;
+                        }
+                        
                         if (data.status === 'success') {
+                            // Payment successful
                             clearInterval(checkPaymentStatusInterval);
                             clearInterval(countdownInterval);
                             displayPaymentStatus(
@@ -602,14 +633,19 @@
                             );
                             showNotification('Pembayaran berhasil!');
                         } else if (data.status === 'failed') {
+                            // Payment failed or expired
                             clearInterval(checkPaymentStatusInterval);
                             clearInterval(countdownInterval);
                             displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                        } else {
+                            // Payment still pending
+                            checkingStatus.innerHTML = `Menunggu pembayaran dari wallet ${data.walletCode}.<br>Sistem akan terus memeriksa hingga batas waktu (${data.remainingTime} detik).<br>Harap lengkapi pembayaran Anda.`;
                         }
                     }
                 })
                 .catch(error => {
                     console.error('Error checking payment status:', error);
+                    checkingStatus.textContent = 'Gagal memeriksa status pembayaran. Akan mencoba lagi...';
                 });
         }
         
