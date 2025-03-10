@@ -558,6 +558,18 @@
                         document.getElementById('transactionAmount').textContent = data.amount;
                     }
                     
+                    // If we're at step 1 (found in mempool) but not yet step 2 (in history),
+                    // increase the checking frequency to check more aggressively
+                    if (data.step1Complete && !data.step2Complete) {
+                        // Decrease the interval to check more frequently (every 1 second)
+                        clearInterval(checkPaymentStatusInterval);
+                        checkPaymentStatusInterval = setInterval(checkPaymentStatus, 1000);
+                    } else if (data.step2Complete) {
+                        // Once step 2 is complete, slow down the checks again
+                        clearInterval(checkPaymentStatusInterval);
+                        checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
+                    }
+                    
                     if (data.success) {
                         if (data.status === 'success') {
                             // Payment successful
