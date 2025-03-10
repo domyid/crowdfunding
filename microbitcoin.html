@@ -194,6 +194,69 @@
             font-weight: bold;
         }
         
+        .wallet-address {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        
+        .transaction-details {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .transaction-id {
+            word-break: break-all;
+            background-color: #fff;
+            padding: 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        @keyframes dotFade {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .delay-info {
+            display: inline-block;
+            margin-left: 5px;
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        
+        .countdown {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .checking-dots {
+            display: inline-block;
+        }
+        
+        .checking-dots .dot {
+            display: inline-block;
+            opacity: 0;
+            animation: dotFade 1.5s infinite;
+        }
+        
+        .checking-dots .dot1 {
+            animation-delay: 0s;
+        }
+        
+        .checking-dots .dot2 {
+            animation-delay: 0.5s;
+        }
+        
+        .checking-dots .dot3 {
+            animation-delay: 1s;
+        }
+        
         .steps-container {
             background-color: #f0f8ff;
             border-radius: 5px;
@@ -221,56 +284,6 @@
         
         .step-text {
             font-size: 14px;
-        }
-        
-        .wallet-address {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            word-break: break-all;
-            margin: 10px 0;
-        }
-        
-        .transaction-details {
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        
-        .transaction-id {
-            word-break: break-all;
-            background-color: #fff;
-            padding: 5px;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-        
-        .checking-dots {
-            display: inline-block;
-        }
-        
-        .checking-dots .dot {
-            display: inline-block;
-            opacity: 0;
-            animation: dotFade 1.5s infinite;
-        }
-        
-        .checking-dots .dot1 {
-            animation-delay: 0s;
-        }
-        
-        .checking-dots .dot2 {
-            animation-delay: 0.5s;
-        }
-        
-        .checking-dots .dot3 {
-            animation-delay: 1s;
-        }
-        
-        @keyframes dotFade {
-            0% { opacity: 0; }
-            50% { opacity: 1; }
-            100% { opacity: 0; }
         }
     </style>
 </head>
@@ -314,7 +327,7 @@
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
             
             <div class="timer">
-                <span id="countdown">300</span> detik
+                <span id="countdown">600</span> detik
             </div>
             
             <img id="microbitcoinQR" class="microbitcoin-image" src="wonpay.png" alt="MicroBitcoin QR Code">
@@ -329,7 +342,10 @@
                 <h3 style="margin-top: 0;">Status Verifikasi:</h3>
                 <div class="step">
                     <div id="step1Circle" class="step-circle"></div>
-                    <div class="step-text">Step 1: Cek mempool transaksi</div>
+                    <div class="step-text">
+                        Step 1: Cek mempool transaksi
+                        <span id="step1Delay" style="display: none;" class="delay-info">(Menunggu 3 menit...)</span>
+                    </div>
                 </div>
                 <div class="step">
                     <div id="step2Circle" class="step-circle"></div>
@@ -342,6 +358,7 @@
                                 <span class="dot dot3">.</span>
                             </span>
                         </span>
+                        <span id="step2Delay" style="display: none;" class="delay-info">(Menunggu 30 detik...)</span>
                     </div>
                 </div>
                 <div class="step">
@@ -543,9 +560,9 @@
             });
         }
         
-        // Start countdown function
+        // Start countdown function for payment timer
         function startCountdown() {
-            let timeLeft = 300; // 5 minutes
+            let timeLeft = 10 * 60; // 10 minutes
             const countdownElement = document.getElementById('countdown');
             countdownElement.textContent = timeLeft;
             
@@ -581,10 +598,47 @@
                             document.getElementById('transactionId').textContent = data.txid;
                             document.getElementById('transactionDetails').style.display = 'block';
                         }
+                        
+                        // Handle Step 1 delay display
+                        if (data.delayStep2Until && !data.step2Complete) {
+                            const now = new Date();
+                            const delayUntil = new Date(data.delayStep2Until);
+                            
+                            if (now < delayUntil) {
+                                // Still in delay period, show countdown
+                                const remainingSeconds = Math.round((delayUntil - now) / 1000);
+                                const step1DelayEl = document.getElementById('step1Delay');
+                                step1DelayEl.style.display = 'inline-block';
+                                step1DelayEl.innerHTML = `(Menunggu <span class="countdown">${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')}</span>)`;
+                            } else {
+                                // Delay complete
+                                document.getElementById('step1Delay').style.display = 'none';
+                                // We're now checking for the transaction, so show the checking animation
+                                document.getElementById('step2Checking').style.display = 'inline-block';
+                            }
+                        }
                     }
                     
                     if (data.step2Complete) {
                         document.getElementById('step2Circle').classList.add('complete');
+                        document.getElementById('step2Checking').style.display = 'none';
+                        
+                        // Handle Step 2 delay display
+                        if (data.delayStep3Until && !data.step3Complete) {
+                            const now = new Date();
+                            const delayUntil = new Date(data.delayStep3Until);
+                            
+                            if (now < delayUntil) {
+                                // Still in delay period, show countdown
+                                const remainingSeconds = Math.round((delayUntil - now) / 1000);
+                                const step2DelayEl = document.getElementById('step2Delay');
+                                step2DelayEl.style.display = 'inline-block';
+                                step2DelayEl.innerHTML = `(Menunggu <span class="countdown">${remainingSeconds}</span> detik)`;
+                            } else {
+                                // Delay complete
+                                document.getElementById('step2Delay').style.display = 'none';
+                            }
+                        }
                     }
                     
                     if (data.step3Complete) {
@@ -595,43 +649,62 @@
                         document.getElementById('transactionAmount').textContent = data.amount;
                     }
                     
-                    // If we're at step 1 (found in mempool) but not yet step 2 (in history),
-                    // increase the checking frequency to check more aggressively
-                    if (data.step1Complete && !data.step2Complete) {
-                        // Show checking animation for step 2
-                        document.getElementById('step2Checking').style.display = 'inline-block';
-                        
-                        // Decrease the interval to check more frequently (every 1 second)
-                        clearInterval(checkPaymentStatusInterval);
-                        checkPaymentStatusInterval = setInterval(checkPaymentStatus, 1000);
-                    } else if (data.step2Complete) {
-                        // Hide checking animation once step 2 is complete
-                        document.getElementById('step2Checking').style.display = 'none';
-                        
-                        // Once step 2 is complete, slow down the checks again
-                        clearInterval(checkPaymentStatusInterval);
-                        checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
-                    }
+                    // Adjust check frequency based on current step
+                    clearInterval(checkPaymentStatusInterval);
                     
-                    if (data.success) {
-                        if (data.status === 'success') {
-                            // Payment successful
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount} MBC`);
+                    if (data.status === 'success') {
+                        // Payment successful
+                        clearInterval(checkPaymentStatusInterval);
+                        document.getElementById('successTxId').textContent = data.txid;
+                        document.getElementById('successAmount').textContent = data.amount;
+                        document.getElementById('successDetails').style.display = 'block';
+                        displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount} MBC`);
+                    } else if (data.status === 'failed') {
+                        // Payment failed
+                        clearInterval(checkPaymentStatusInterval);
+                        displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                    } else {
+                        // Determine optimal check frequency based on current step
+                        let checkFrequency = 3000; // Default: every 3 seconds
+                        
+                        if (data.step1Complete && !data.step2Complete) {
+                            const now = new Date();
+                            const delayUntil = new Date(data.delayStep2Until);
                             
-                            // Show transaction details
-                            document.getElementById('successTxId').textContent = data.txid;
-                            document.getElementById('successAmount').textContent = data.amount;
-                            document.getElementById('successDetails').style.display = 'block';
-                        } else if (data.status === 'failed') {
-                            // Payment failed
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                            if (now < delayUntil) {
+                                // Still in 3-minute delay period, check less frequently
+                                const remainingSeconds = Math.round((delayUntil - now) / 1000);
+                                if (remainingSeconds > 60) {
+                                    checkFrequency = 10000; // Every 10 seconds when > 1 minute remains
+                                } else {
+                                    checkFrequency = 5000; // Every 5 seconds when < 1 minute remains
+                                }
+                            } else {
+                                // Past delay, actively checking for transaction in history
+                                checkFrequency = 1000; // Every 1 second
+                            }
+                        } else if (data.step2Complete && !data.step3Complete) {
+                            const now = new Date();
+                            const delayUntil = new Date(data.delayStep3Until);
+                            
+                            if (now < delayUntil) {
+                                // In 30-second delay period, check every 5 seconds
+                                checkFrequency = 5000;
+                            } else {
+                                // Past delay, actively checking transaction details
+                                checkFrequency = 2000; // Every 2 seconds
+                            }
                         }
+                        
+                        // Set the new interval
+                        checkPaymentStatusInterval = setInterval(checkPaymentStatus, checkFrequency);
                     }
                 })
                 .catch(error => {
                     console.error('Error checking payment status:', error);
+                    // If there's an error, keep checking but less frequently
+                    clearInterval(checkPaymentStatusInterval);
+                    checkPaymentStatusInterval = setInterval(checkPaymentStatus, 5000);
                 });
         }
         
@@ -643,7 +716,7 @@
             // Hide payment container
             document.getElementById('paymentContainer').style.display = 'none';
             
-            // Update status message
+            // Update and display status
             const statusElement = document.getElementById('paymentStatus');
             statusElement.textContent = message;
             
@@ -651,6 +724,13 @@
                 statusElement.className = 'status-message success';
             } else {
                 statusElement.className = 'status-message error';
+            }
+            
+            // Display success details if applicable
+            if (status === 'success') {
+                document.getElementById('successDetails').style.display = 'block';
+            } else {
+                document.getElementById('successDetails').style.display = 'none';
             }
             
             // Show status container
@@ -671,12 +751,15 @@
             document.getElementById('statusContainer').style.display = 'none';
             document.getElementById('paymentContainer').style.display = 'none';
             document.getElementById('orderForm').style.display = 'block';
+            document.getElementById('successDetails').style.display = 'none';
             
             // Reset verification steps
             document.getElementById('step1Circle').classList.remove('complete');
             document.getElementById('step2Circle').classList.remove('complete');
             document.getElementById('step3Circle').classList.remove('complete');
+            document.getElementById('step1Delay').style.display = 'none';
             document.getElementById('step2Checking').style.display = 'none';
+            document.getElementById('step2Delay').style.display = 'none';
             document.getElementById('transactionDetails').style.display = 'none';
             
             // Check queue status
