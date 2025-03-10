@@ -304,8 +304,12 @@
                     <div class="step-text">Step 1: Cek mempool transaksi</div>
                 </div>
                 <div class="step">
+                    <div id="step2Circle" class="step-circle"></div>
+                    <div class="step-text">Step 2: Cek kode TX pada transaksi</div>
+                </div>
+                <div class="step">
                     <div id="step3Circle" class="step-circle"></div>
-                    <div class="step-text">Step 2: Konfirmasi transaksi</div>
+                    <div class="step-text">Step 3: Konfirmasi transaksi</div>
                 </div>
                 
                 <div id="transactionDetails" class="transaction-details" style="display: none;">
@@ -542,6 +546,10 @@
                         }
                     }
                     
+                    if (data.step2Complete) {
+                        document.getElementById('step2Circle').classList.add('complete');
+                    }
+                    
                     if (data.step3Complete) {
                         document.getElementById('step3Circle').classList.add('complete');
                     }
@@ -611,6 +619,7 @@
             
             // Reset verification steps
             document.getElementById('step1Circle').classList.remove('complete');
+            document.getElementById('step2Circle').classList.remove('complete');
             document.getElementById('step3Circle').classList.remove('complete');
             document.getElementById('transactionDetails').style.display = 'none';
             
