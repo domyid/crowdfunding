@@ -532,13 +532,62 @@
                     return response.json();
                 })
                 .then(data => {
+                    console.log("Payment status response:", data); // Debug log
+                    
                     // Update verification steps
                     if (data.step1Complete) {
                         document.getElementById('step1Circle').classList.add('complete');
+                        
                         // Show transaction ID if available
                         if (data.txid) {
                             document.getElementById('transactionId').textContent = data.txid;
                             document.getElementById('transactionDetails').style.display = 'block';
+                        }
+                        
+                        // Handle delay between Step 1 and Step 2
+                        if (data.delayStep2Until && !data.step2Complete) {
+                            const delayUntil = new Date(data.delayStep2Until);
+                            const now = new Date();
+                            const remainingSeconds = Math.max(0, Math.floor((delayUntil - now) / 1000));
+                            
+                            if (remainingSeconds > 0) {
+                                const minutes = Math.floor(remainingSeconds / 60);
+                                const seconds = remainingSeconds % 60;
+                                
+                                // Create a status message for Step 1 waiting period
+                                const statusContainer = document.getElementById('statusContainer');
+                                const paymentStatus = document.getElementById('paymentStatus');
+                                
+                                paymentStatus.className = 'status-message info';
+                                paymentStatus.innerHTML = `Transaksi ditemukan dalam mempool! <br>Menunggu <strong>${minutes}:${seconds.toString().padStart(2, '0')}</strong> sebelum verifikasi blockchain...`;
+                                statusContainer.style.display = 'block';
+                                
+                                console.log(`Waiting ${minutes}:${seconds} before Step 2`);
+                            }
+                        }
+                    }
+                    
+                    if (data.step2Complete) {
+                        // Mark Step 2 as complete visually
+                        document.getElementById('step3Circle').classList.add('complete');
+                        
+                        // Handle delay between Step 2 and Step 3
+                        if (data.delayStep3Until && !data.step3Complete) {
+                            const delayUntil = new Date(data.delayStep3Until);
+                            const now = new Date();
+                            const remainingSeconds = Math.max(0, Math.floor((delayUntil - now) / 1000));
+                            
+                            if (remainingSeconds > 0) {
+                                // Create a status message for Step 2 waiting period
+                                const statusContainer = document.getElementById('statusContainer');
+                                const paymentStatus = document.getElementById('paymentStatus');
+                                
+                                paymentStatus.className = 'status-message success';
+                                paymentStatus.innerHTML = `Transaksi terverifikasi di blockchain! <br>Menunggu <strong>${remainingSeconds}</strong> detik untuk konfirmasi akhir...`;
+                                statusContainer.style.display = 'block';
+                                
+                                console.log(`Waiting ${remainingSeconds} seconds before Step 3`);
+                            }
                         }
                     }
                     
@@ -613,6 +662,7 @@
             document.getElementById('step1Circle').classList.remove('complete');
             document.getElementById('step3Circle').classList.remove('complete');
             document.getElementById('transactionDetails').style.display = 'none';
+            document.getElementById('successDetails').style.display = 'none';
             
             // Check queue status
             checkQueueStatus();
