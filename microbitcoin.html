@@ -286,7 +286,7 @@
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
             
             <div class="timer">
-                <span id="countdown">300</span> detik
+                <span id="countdown">600</span> detik
             </div>
             
             <img id="microbitcoinQR" class="microbitcoin-image" src="wonpay.png" alt="MicroBitcoin QR Code">
@@ -296,24 +296,28 @@
                 <p id="walletAddress"></p>
             </div>
             
-            <!-- Verification Steps -->
-            <div class="steps-container">
-                <h3 style="margin-top: 0;">Status Verifikasi:</h3>
-                <div class="step">
-                    <div id="step1Circle" class="step-circle"></div>
-                    <div class="step-text">Step 1: Cek mempool transaksi</div>
-                </div>
-                <div class="step">
-                    <div id="step3Circle" class="step-circle"></div>
-                    <div class="step-text">Step 2: Konfirmasi transaksi</div>
-                </div>
-                
-                <div id="transactionDetails" class="transaction-details" style="display: none;">
-                    <p><strong>Transaction ID:</strong></p>
-                    <p id="transactionId" class="transaction-id"></p>
-                    <p><strong>Amount:</strong> <span id="transactionAmount">0</span> MBC</p>
-                </div>
-            </div>
+           <!-- Verification Steps -->
+<div class="steps-container">
+    <h3 style="margin-top: 0;">Status Verifikasi:</h3>
+    <div class="step">
+        <div id="step1Circle" class="step-circle"></div>
+        <div class="step-text">Step 1: Cek mempool transaksi</div>
+    </div>
+    <div class="step">
+        <div id="step2Circle" class="step-circle"></div>
+        <div class="step-text">Step 2: Verifikasi transaksi di blockchain</div>
+    </div>
+    <div class="step">
+        <div id="step3Circle" class="step-circle"></div>
+        <div class="step-text">Step 3: Konfirmasi detail transaksi</div>
+    </div>
+    
+    <div id="transactionDetails" class="transaction-details" style="display: none;">
+        <p><strong>Transaction ID:</strong></p>
+        <p id="transactionId" class="transaction-id"></p>
+        <p><strong>Amount:</strong> <span id="transactionAmount">0</span> MBC</p>
+    </div>
+</div>
             
             <p class="status-message info">
                 Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
@@ -504,7 +508,7 @@
         
         // Start countdown function
         function startCountdown() {
-            let timeLeft = 300; // 5 minutes
+            let timeLeft = 600; // 5 minutes
             const countdownElement = document.getElementById('countdown');
             countdownElement.textContent = timeLeft;
             
@@ -520,106 +524,106 @@
             }, 1000);
         }
         
-        // Check payment status function
-        function checkPaymentStatus() {
-            if (!orderId) return;
+       // Check payment status function
+function checkPaymentStatus() {
+    if (!orderId) return;
+    
+    fetch(`${API_URL}/api/merchcoin/checkPayment/${orderId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Payment status response:", data); // Debug log
             
-            fetch(`${API_URL}/api/merchcoin/checkPayment/${orderId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Payment status response:", data); // Debug log
+            // Update verification steps
+            if (data.step1Complete) {
+                document.getElementById('step1Circle').classList.add('complete');
+                
+                // Show transaction ID if available
+                if (data.txid) {
+                    document.getElementById('transactionId').textContent = data.txid;
+                    document.getElementById('transactionDetails').style.display = 'block';
+                }
+                
+                // Handle delay between Step 1 and Step 2
+                if (data.delayStep2Until && !data.step2Complete) {
+                    const delayUntil = new Date(data.delayStep2Until);
+                    const now = new Date();
+                    const remainingSeconds = Math.max(0, Math.floor((delayUntil - now) / 1000));
                     
-                    // Update verification steps
-                    if (data.step1Complete) {
-                        document.getElementById('step1Circle').classList.add('complete');
+                    if (remainingSeconds > 0) {
+                        const minutes = Math.floor(remainingSeconds / 60);
+                        const seconds = remainingSeconds % 60;
                         
-                        // Show transaction ID if available
-                        if (data.txid) {
-                            document.getElementById('transactionId').textContent = data.txid;
-                            document.getElementById('transactionDetails').style.display = 'block';
-                        }
+                        // Create a status message for Step 1 waiting period
+                        const statusContainer = document.getElementById('statusContainer');
+                        const paymentStatus = document.getElementById('paymentStatus');
                         
-                        // Handle delay between Step 1 and Step 2
-                        if (data.delayStep2Until && !data.step2Complete) {
-                            const delayUntil = new Date(data.delayStep2Until);
-                            const now = new Date();
-                            const remainingSeconds = Math.max(0, Math.floor((delayUntil - now) / 1000));
-                            
-                            if (remainingSeconds > 0) {
-                                const minutes = Math.floor(remainingSeconds / 60);
-                                const seconds = remainingSeconds % 60;
-                                
-                                // Create a status message for Step 1 waiting period
-                                const statusContainer = document.getElementById('statusContainer');
-                                const paymentStatus = document.getElementById('paymentStatus');
-                                
-                                paymentStatus.className = 'status-message info';
-                                paymentStatus.innerHTML = `Transaksi ditemukan dalam mempool! <br>Menunggu <strong>${minutes}:${seconds.toString().padStart(2, '0')}</strong> sebelum verifikasi blockchain...`;
-                                statusContainer.style.display = 'block';
-                                
-                                console.log(`Waiting ${minutes}:${seconds} before Step 2`);
-                            }
-                        }
-                    }
-                    
-                    if (data.step2Complete) {
-                        // Mark Step 2 as complete visually
-                        document.getElementById('step3Circle').classList.add('complete');
+                        paymentStatus.className = 'status-message info';
+                        paymentStatus.innerHTML = `Transaksi ditemukan dalam mempool! <br>Menunggu <strong>${minutes}:${seconds.toString().padStart(2, '0')}</strong> sebelum verifikasi blockchain...`;
+                        statusContainer.style.display = 'block';
                         
-                        // Handle delay between Step 2 and Step 3
-                        if (data.delayStep3Until && !data.step3Complete) {
-                            const delayUntil = new Date(data.delayStep3Until);
-                            const now = new Date();
-                            const remainingSeconds = Math.max(0, Math.floor((delayUntil - now) / 1000));
-                            
-                            if (remainingSeconds > 0) {
-                                // Create a status message for Step 2 waiting period
-                                const statusContainer = document.getElementById('statusContainer');
-                                const paymentStatus = document.getElementById('paymentStatus');
-                                
-                                paymentStatus.className = 'status-message success';
-                                paymentStatus.innerHTML = `Transaksi terverifikasi di blockchain! <br>Menunggu <strong>${remainingSeconds}</strong> detik untuk konfirmasi akhir...`;
-                                statusContainer.style.display = 'block';
-                                
-                                console.log(`Waiting ${remainingSeconds} seconds before Step 3`);
-                            }
-                        }
+                        console.log(`Waiting ${minutes}:${seconds} before Step 2`);
                     }
+                }
+            }
+            
+            if (data.step2Complete) {
+                // Mark Step 2 as complete visually
+                document.getElementById('step2Circle').classList.add('complete');
+                
+                // Handle delay between Step 2 and Step 3
+                if (data.delayStep3Until && !data.step3Complete) {
+                    const delayUntil = new Date(data.delayStep3Until);
+                    const now = new Date();
+                    const remainingSeconds = Math.max(0, Math.floor((delayUntil - now) / 1000));
                     
-                    if (data.step3Complete) {
-                        document.getElementById('step3Circle').classList.add('complete');
+                    if (remainingSeconds > 0) {
+                        // Create a status message for Step 2 waiting period
+                        const statusContainer = document.getElementById('statusContainer');
+                        const paymentStatus = document.getElementById('paymentStatus');
+                        
+                        paymentStatus.className = 'status-message success';
+                        paymentStatus.innerHTML = `Transaksi terverifikasi di blockchain! <br>Menunggu <strong>${remainingSeconds}</strong> detik untuk konfirmasi akhir...`;
+                        statusContainer.style.display = 'block';
+                        
+                        console.log(`Waiting ${remainingSeconds} seconds before Step 3`);
                     }
+                }
+            }
+            
+            if (data.step3Complete) {
+                document.getElementById('step3Circle').classList.add('complete');
+            }
+            
+            if (data.amount > 0) {
+                document.getElementById('transactionAmount').textContent = data.amount;
+            }
+            
+            if (data.success) {
+                if (data.status === 'success') {
+                    // Payment successful
+                    clearInterval(checkPaymentStatusInterval);
+                    displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount} MBC`);
                     
-                    if (data.amount > 0) {
-                        document.getElementById('transactionAmount').textContent = data.amount;
-                    }
-                    
-                    if (data.success) {
-                        if (data.status === 'success') {
-                            // Payment successful
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount} MBC`);
-                            
-                            // Show transaction details
-                            document.getElementById('successTxId').textContent = data.txid;
-                            document.getElementById('successAmount').textContent = data.amount;
-                            document.getElementById('successDetails').style.display = 'block';
-                        } else if (data.status === 'failed') {
-                            // Payment failed
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking payment status:', error);
-                });
-        }
+                    // Show transaction details
+                    document.getElementById('successTxId').textContent = data.txid;
+                    document.getElementById('successAmount').textContent = data.amount;
+                    document.getElementById('successDetails').style.display = 'block';
+                } else if (data.status === 'failed') {
+                    // Payment failed
+                    clearInterval(checkPaymentStatusInterval);
+                    displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+        });
+}
         
         // Display payment status function
         function displayPaymentStatus(status, message) {
@@ -643,30 +647,31 @@
             document.getElementById('statusContainer').style.display = 'block';
         }
         
-        // Reset form function
-        function resetForm() {
-            // Reset form input
-            document.getElementById('wonpayCode').value = '';
-            
-            // Reset all state
-            orderId = null;
-            clearInterval(countdownInterval);
-            clearInterval(checkPaymentStatusInterval);
-            
-            // Reset UI
-            document.getElementById('statusContainer').style.display = 'none';
-            document.getElementById('paymentContainer').style.display = 'none';
-            document.getElementById('orderForm').style.display = 'block';
-            
-            // Reset verification steps
-            document.getElementById('step1Circle').classList.remove('complete');
-            document.getElementById('step3Circle').classList.remove('complete');
-            document.getElementById('transactionDetails').style.display = 'none';
-            document.getElementById('successDetails').style.display = 'none';
-            
-            // Check queue status
-            checkQueueStatus();
-        }
+       // Reset form function
+function resetForm() {
+    // Reset form input
+    document.getElementById('wonpayCode').value = '';
+    
+    // Reset all state
+    orderId = null;
+    clearInterval(countdownInterval);
+    clearInterval(checkPaymentStatusInterval);
+    
+    // Reset UI
+    document.getElementById('statusContainer').style.display = 'none';
+    document.getElementById('paymentContainer').style.display = 'none';
+    document.getElementById('orderForm').style.display = 'block';
+    
+    // Reset verification steps
+    document.getElementById('step1Circle').classList.remove('complete');
+    document.getElementById('step2Circle').classList.remove('complete');
+    document.getElementById('step3Circle').classList.remove('complete');
+    document.getElementById('transactionDetails').style.display = 'none';
+    document.getElementById('successDetails').style.display = 'none';
+    
+    // Check queue status
+    checkQueueStatus();
+}
     </script>
 </body>
 </html>
