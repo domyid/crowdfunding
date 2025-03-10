@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MicroBitcoin Explorer - Microbit Payment Services</title>
+    <title>Pembayaran MerchCoin</title>
     
     <style>
         body {
@@ -15,7 +15,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 500px;
             margin: 20px auto;
             background-color: white;
             border-radius: 10px;
@@ -39,158 +39,23 @@
         }
         
         h1 {
+            text-align: center;
             margin: 0 auto;
             color: #333;
-            text-align: center;
         }
         
-        .tabs {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
+        .input-group {
+            margin-bottom: 15px;
         }
         
-        .tab {
-            padding: 10px 15px;
-            cursor: pointer;
-            background-color: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 5px 5px 0 0;
-            margin-right: 5px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        
-        .tab.active {
-            background-color: white;
-            border-bottom-color: white;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
+        label {
             display: block;
-        }
-        
-        .info-card {
-            background-color: #f0f8ff;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
-        }
-        
-        .info-item {
-            margin-bottom: 10px;
-        }
-        
-        .info-label {
+            margin-bottom: 5px;
             font-weight: 600;
             color: #555;
-            margin-bottom: 5px;
         }
         
-        .info-value {
-            font-family: 'Courier New', monospace;
-            word-break: break-all;
-        }
-        
-        .block-list {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .block-item {
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            transition: background-color 0.2s;
-        }
-        
-        .block-item:last-child {
-            border-bottom: none;
-        }
-        
-        .block-item:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .block-height {
-            font-weight: bold;
-            min-width: 80px;
-        }
-        
-        .block-hash {
-            font-family: 'Courier New', monospace;
-            color: #1a53f0;
-            word-break: break-all;
-            margin: 0 15px;
-            flex-grow: 1;
-        }
-        
-        .block-time {
-            color: #666;
-            min-width: 180px;
-            text-align: right;
-        }
-        
-        .block-tx-count {
-            min-width: 100px;
-            text-align: right;
-        }
-        
-        .transaction-list {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .transaction-item {
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-            transition: background-color 0.2s;
-        }
-        
-        .transaction-item:last-child {
-            border-bottom: none;
-        }
-        
-        .transaction-item:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .transaction-hash {
-            font-family: 'Courier New', monospace;
-            color: #1a53f0;
-            word-break: break-all;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        
-        .transaction-details {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .search-container {
-            margin-bottom: 20px;
-        }
-        
-        .search-input {
+        .form-control {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -200,12 +65,13 @@
         }
         
         .btn {
-            padding: 10px 15px;
+            width: 100%;
+            padding: 12px;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s;
@@ -220,32 +86,60 @@
             cursor: not-allowed;
         }
         
-        .search-options {
-            display: flex;
-            margin-top: 10px;
-            gap: 10px;
+        .payment-container {
+            display: none;
+            text-align: center;
         }
         
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(76, 175, 80, 0.3);
-            border-radius: 50%;
-            border-top-color: #4CAF50;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .qr-image {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
         }
         
-        .loading-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 150px;
+        .order-details {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: 700;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
         }
         
         .notification {
@@ -267,140 +161,92 @@
             opacity: 1;
             transform: translateY(0);
         }
-        
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
-        .pagination-btn {
-            margin: 0 5px;
-            padding: 5px 10px;
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
             background-color: #f5f5f5;
             border: 1px solid #ddd;
-            border-radius: 3px;
-            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            font-weight: 600;
         }
         
-        .pagination-btn.active {
-            background-color: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
+        .tab.active {
+            background-color: white;
+            border-bottom-color: white;
         }
         
-        .pagination-btn:hover:not(.active) {
-            background-color: #e9e9e9;
+        .tab-content {
+            display: none;
         }
         
-        .pagination-btn.disabled {
-            color: #ccc;
-            cursor: not-allowed;
+        .tab-content.active {
+            display: block;
         }
         
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
+        .queue-info {
+            background-color: #e8f4f8;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
+            font-size: 14px;
         }
         
-        .block-details {
-            margin-top: 20px;
+        .queue-info p {
+            margin: 5px 0;
         }
         
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #ddd;
+        .queue-timer {
+            color: #e74c3c;
+            font-weight: bold;
         }
         
-        .detail-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-            align-items: flex-start;
-        }
-        
-        .detail-label {
-            width: 150px;
-            font-weight: 600;
-            color: #555;
-        }
-        
-        .detail-value {
-            flex: 1;
-            font-family: 'Courier New', monospace;
-            word-break: break-all;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .stats-card {
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            padding: 15px;
             margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
         }
         
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        .stats-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
         }
         
-        th {
-            background-color: #f5f5f5;
-            font-weight: 600;
+        .stats-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
         }
         
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 20px;
+        .stats-label {
             font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .badge-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .badge-warning {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        
-        .badge-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-        
-        @media (max-width: 768px) {
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .detail-label {
-                width: 100%;
-                margin-bottom: 5px;
-            }
-            
-            .block-time, .block-tx-count {
-                text-align: left;
-                margin-top: 5px;
-                width: 100%;
-            }
-            
-            .block-hash {
-                margin: 5px 0;
-                width: 100%;
-            }
+            color: #666;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -410,170 +256,96 @@
             <a href="index.html" class="back-btn">
                 ← Kembali
             </a>
-            <h1>MicroBitcoin Explorer</h1>
+            <h1>Pembayaran MerchCoin</h1>
         </div>
         
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('overview')">Ringkasan</div>
-            <div class="tab" onclick="switchTab('blocks')">Blok</div>
-            <div class="tab" onclick="switchTab('transactions')">Transaksi</div>
-            <div class="tab" onclick="switchTab('search')">Pencarian</div>
+            <div class="tab active" onclick="switchTab('payment')">Pembayaran</div>
+            <div class="tab" onclick="switchTab('stats')">Statistik</div>
         </div>
         
-        <!-- Tab Overview -->
-        <div id="overview-tab" class="tab-content active">
-            <div class="loading-container" id="overview-loading">
-                <div class="loading"></div> Memuat data blockchain...
+        <!-- Stats Dashboard -->
+        <div id="stats-tab" class="tab-content">
+            <h2>Statistik Pembayaran</h2>
+            
+            <div class="stats-card">
+                <div class="stats-title">Total Pembayaran</div>
+                <div class="stats-value" id="totalAmount">Rp 0</div>
+                <div class="stats-label">Total nilai pembayaran yang berhasil</div>
             </div>
             
-            <div id="overview-content" style="display: none;">
-                <h2>Informasi Blockchain</h2>
-                
-                <div class="info-card">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Blockchain</div>
-                            <div class="info-value" id="chain-name">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Tinggi Blok Saat Ini</div>
-                            <div class="info-value" id="block-height">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Difficulty</div>
-                            <div class="info-value" id="difficulty">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Waktu Median</div>
-                            <div class="info-value" id="median-time">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Hash Blok Terbaru</div>
-                            <div class="info-value" id="best-blockhash">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Ukuran Blockchain</div>
-                            <div class="info-value" id="size-on-disk">-</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <h2>Statistik Jaringan</h2>
-                
-                <div class="info-card">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Total Blok</div>
-                            <div class="info-value" id="total-blocks">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Total Transaksi</div>
-                            <div class="info-value" id="total-transactions">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Rata-rata Ukuran Blok</div>
-                            <div class="info-value" id="avg-block-size">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Rata-rata Transaksi per Blok</div>
-                            <div class="info-value" id="avg-tx-per-block">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Status Sinkronisasi</div>
-                            <div class="info-value" id="sync-status">-</div>
-                        </div>
-                        
-                        <div class="info-item">
-                            <div class="info-label">Terakhir Diperbarui</div>
-                            <div class="info-value" id="last-updated">-</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <h2>Blok Terbaru</h2>
-                
-                <div class="block-list" id="recent-blocks">
-                    <!-- Recent blocks will be inserted here -->
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn" onclick="switchTab('blocks')">Lihat Lebih Banyak Blok</button>
-                </div>
+            <div class="stats-card">
+                <div class="stats-title">Jumlah Transaksi</div>
+                <div class="stats-value" id="totalCount">0</div>
+                <div class="stats-label">Total transaksi yang berhasil</div>
             </div>
+            
+            <div class="stats-card">
+                <div class="stats-title">Terakhir Diperbarui</div>
+                <div class="stats-value" id="lastUpdated">-</div>
+                <div class="stats-label">Waktu pembaruan terakhir</div>
+            </div>
+            
+            <button id="refreshStatsBtn" class="btn" onclick="fetchPaymentStats()" style="margin-top: 15px;">
+                Refresh Statistik
+            </button>
         </div>
         
-        <!-- Tab Blocks -->
-        <div id="blocks-tab" class="tab-content">
-            <h2>Daftar Blok</h2>
-            
-            <div class="loading-container" id="blocks-loading">
-                <div class="loading"></div> Memuat daftar blok...
-            </div>
-            
-            <div id="blocks-content" style="display: none;">
-                <div class="block-list" id="blocks-list">
-                    <!-- Blocks will be inserted here -->
-                </div>
-                
-                <div class="pagination" id="blocks-pagination">
-                    <!-- Pagination buttons will be inserted here -->
-                </div>
-            </div>
+        <!-- Queue Info -->
+        <div id="queueInfo" class="queue-info" style="display: none;">
+            <p><strong>Status:</strong> Sedang ada pembayaran berlangsung</p>
+            <p><strong>Berakhir dalam:</strong> <span id="queueTimer" class="queue-timer">00:00</span></p>
+            <p>Mohon tunggu hingga pembayaran selesai atau waktu habis.</p>
         </div>
         
-        <!-- Tab Transactions -->
-        <div id="transactions-tab" class="tab-content">
-            <h2>Transaksi Terbaru</h2>
-            
-            <div class="loading-container" id="transactions-loading">
-                <div class="loading"></div> Memuat transaksi terbaru...
-            </div>
-            
-            <div id="transactions-content" style="display: none;">
-                <div class="transaction-list" id="transactions-list">
-                    <!-- Transactions will be inserted here -->
+        <!-- Pembayaran Tab -->
+        <div id="payment-tab" class="tab-content active">
+            <!-- Form untuk membuat order -->
+            <div id="orderForm">
+                <div class="input-group">
+                    <label for="name">Nama Lengkap</label>
+                    <input type="text" id="name" class="form-control" placeholder="Masukkan nama lengkap Anda">
                 </div>
                 
-                <div class="pagination" id="transactions-pagination">
-                    <!-- Pagination buttons will be inserted here -->
+                <div class="input-group">
+                    <label for="amount">Jumlah Pembayaran</label>
+                    <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
                 </div>
-            </div>
-        </div>
-        
-        <!-- Tab Search -->
-        <div id="search-tab" class="tab-content">
-            <h2>Pencarian</h2>
-            
-            <div class="search-container">
-                <input type="text" id="search-input" class="search-input" placeholder="Cari berdasarkan hash blok, hash transaksi, tinggi blok, atau alamat">
                 
-                <div class="search-options">
-                    <button class="btn" onclick="performSearch()">Cari</button>
-                    
-                    <select id="search-type" class="search-input" style="width: auto;">
-                        <option value="auto">Otomatis Deteksi</option>
-                        <option value="block">Blok</option>
-                        <option value="transaction">Transaksi</option>
-                        <option value="address">Alamat</option>
-                    </select>
+                <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
+                
+                <div id="queueMessage" class="status-message warning" style="display: none;">
+                    Sedang ada pembayaran berlangsung. Mohon tunggu...
                 </div>
             </div>
             
-            <div id="search-error" class="error-message" style="display: none;">
-                <!-- Error message will be displayed here -->
+            <!-- Container pembayaran QR -->
+            <div id="paymentContainer" class="payment-container">
+                <div class="order-details">
+                    <p><strong>Order ID:</strong> <span id="orderId"></span></p>
+                    <p><strong>Nama:</strong> <span id="customerName"></span></p>
+                    <p><strong>Jumlah:</strong> Rp <span id="paymentAmount"></span></p>
+                </div>
+                
+                <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
+                
+                <div class="timer">
+                    <span id="countdown">300</span> detik
+                </div>
+                
+                <img id="qrImage" class="qr-image" src="" alt="QR Code">
+                
+                <p class="status-message info">
+                    Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
+                </p>
             </div>
             
-            <div id="search-results" style="display: none;">
-                <!-- Search results will be displayed here -->
+            <!-- Container status pembayaran -->
+            <div id="statusContainer" style="display: none; margin-top: 20px;">
+                <div id="paymentStatus" class="status-message"></div>
+                <button id="newPaymentBtn" class="btn" onclick="resetForm()" style="margin-top: 15px;">
+                    Buat Pembayaran Baru
+                </button>
             </div>
         </div>
     </div>
@@ -582,49 +354,88 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
-        let currentBlocksPage = 1;
-        let totalBlocks = 0;
-        let blocksPerPage = 10;
+        let orderId = null;
+        let countdownInterval = null;
+        let checkPaymentStatusInterval = null;
+        let queueTimerInterval = null;
+        const API_URL = "/api/merchcoin"; // Base API URL
         
-        // Function to get DOM element by ID
+        // Fungsi untuk mengambil elemen DOM
         function getElement(id) {
             return document.getElementById(id);
         }
         
-        // Function to switch tabs
+        // Fungsi untuk beralih tab
         function switchTab(tabName) {
-            // Hide all tab contents
+            // Sembunyikan semua tab content
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Deactivate all tabs
+            // Nonaktifkan semua tab
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Activate selected tab
-            getElement(tabName + '-tab').classList.add('active');
+            // Aktifkan tab yang dipilih
+            document.getElementById(tabName + '-tab').classList.add('active');
             
-            // Activate selected tab button
+            // Aktifkan tab button yang dipilih
             document.querySelectorAll('.tab').forEach(tab => {
                 if (tab.textContent.toLowerCase().includes(tabName.toLowerCase())) {
                     tab.classList.add('active');
                 }
             });
             
-            // Load content based on tab
-            if (tabName === 'overview' && getElement('overview-content').style.display === 'none') {
-                loadOverviewData();
-            } else if (tabName === 'blocks' && getElement('blocks-content').style.display === 'none') {
-                loadBlocks(1);
-            } else if (tabName === 'transactions' && getElement('transactions-content').style.display === 'none') {
-                loadTransactions(1);
+            // Jika tab statistik dipilih, perbarui data
+            if (tabName === 'stats') {
+                fetchPaymentStats();
             }
         }
         
-        // Function to show notification
+        // Format number to currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+        
+        // Format date to readable format
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Fetch payment statistics
+        function fetchPaymentStats() {
+            const refreshBtn = getElement('refreshStatsBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<div class="loading"></div> Memperbarui...';
+            
+            fetch(`${API_URL}/totalPayments`)
+                .then(response => response.json())
+                .then(data => {
+                    getElement('totalAmount').textContent = formatCurrency(data.totalAmount);
+                    getElement('totalCount').textContent = formatCurrency(data.count);
+                    getElement('lastUpdated').textContent = formatDate(data.lastUpdated);
+                    
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = 'Refresh Statistik';
+                })
+                .catch(error => {
+                    console.error('Error fetching payment stats:', error);
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = 'Refresh Statistik';
+                    showNotification('Gagal memuat data statistik');
+                });
+        }
+        
+        // Fungsi untuk menampilkan notifikasi popup
         function showNotification(message) {
             const notification = getElement('notification');
             notification.textContent = message;
@@ -635,694 +446,290 @@
             }, 5000);
         }
         
-        // Function to format date
-        function formatDate(timestamp) {
-            if (!timestamp) return '-';
-            const date = new Date(timestamp * 1000);
-            return date.toLocaleString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+        // Format waktu dari detik ke MM:SS
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
         
-        // Function to format file size
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-        
-        // Function to load overview data
-        function loadOverviewData() {
-            getElement('overview-loading').style.display = 'flex';
-            getElement('overview-content').style.display = 'none';
-            
-            // Load blockchain info
-            fetch(`${API_URL}/api/microbitcoin/info`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Update blockchain info
-                    getElement('chain-name').textContent = data.chain;
-                    getElement('block-height').textContent = data.blocks.toLocaleString();
-                    getElement('difficulty').textContent = data.difficulty.toLocaleString();
-                    getElement('median-time').textContent = formatDate(data.mediantime);
-                    getElement('best-blockhash').textContent = data.bestblockhash;
-                    getElement('size-on-disk').textContent = formatFileSize(data.size_on_disk);
-                    
-                    // Load statistics
-                    return fetch(`${API_URL}/api/microbitcoin/stats`);
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(stats => {
-                    // Update statistics
-                    getElement('total-blocks').textContent = stats.total_blocks.toLocaleString();
-                    getElement('total-transactions').textContent = stats.total_transactions.toLocaleString();
-                    getElement('avg-block-size').textContent = formatFileSize(stats.average_block_size);
-                    getElement('avg-tx-per-block').textContent = stats.average_transactions_per_block.toFixed(2);
-                    getElement('last-updated').textContent = new Date(stats.last_updated).toLocaleString('id-ID');
-                    
-                    // Load sync status
-                    return fetch(`${API_URL}/api/microbitcoin/syncstatus`);
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(syncStatus => {
-                    // Update sync status
-                    if (syncStatus.sync_in_progress) {
-                        getElement('sync-status').innerHTML = '<span class="badge badge-warning">Sinkronisasi Sedang Berlangsung</span>';
-                    } else {
-                        getElement('sync-status').innerHTML = '<span class="badge badge-success">Tersinkronisasi</span>';
-                    }
-                    
-                    // Load recent blocks
-                    return fetch(`${API_URL}/api/microbitcoin/blocks?limit=5`);
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(blocks => {
-                    // Update recent blocks
-                    const blocksHtml = blocks.map(block => `
-                        <div class="block-item">
-                            <div class="block-height">${block.height.toLocaleString()}</div>
-                            <div class="block-hash">${block.hash}</div>
-                            <div class="block-tx-count">${block.tx.length} transaksi</div>
-                            <div class="block-time">${formatDate(block.time)}</div>
-                        </div>
-                    `).join('');
-                    
-                    getElement('recent-blocks').innerHTML = blocksHtml;
-                    
-                    // Show content
-                    getElement('overview-loading').style.display = 'none';
-                    getElement('overview-content').style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error loading overview data:', error);
-                    showNotification('Gagal memuat data ringkasan');
-                    getElement('overview-loading').style.display = 'none';
-                });
-        }
-        
-        // Function to load blocks
-        function loadBlocks(page) {
-            getElement('blocks-loading').style.display = 'flex';
-            getElement('blocks-content').style.display = 'none';
-            
-            currentBlocksPage = page;
-            
-            // Load blockchain info to get total blocks
-            fetch(`${API_URL}/api/microbitcoin/info`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    totalBlocks = data.blocks;
-                    
-                    // Calculate offset based on page
-                    const offset = (page - 1) * blocksPerPage;
-                    
-                    // Load blocks for the current page
-                    return fetch(`${API_URL}/api/microbitcoin/blocks?limit=${blocksPerPage}&offset=${offset}`);
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(blocks => {
-                    // Update blocks list
-                    const blocksHtml = blocks.map(block => `
-                        <div class="block-item" onclick="loadBlockDetails('${block.hash}')">
-                            <div class="block-height">${block.height.toLocaleString()}</div>
-                            <div class="block-hash">${block.hash}</div>
-                            <div class="block-tx-count">${block.tx.length} transaksi</div>
-                            <div class="block-time">${formatDate(block.time)}</div>
-                        </div>
-                    `).join('');
-                    
-                    getElement('blocks-list').innerHTML = blocksHtml;
-                    
-                    // Update pagination
-                    updateBlocksPagination(page, totalBlocks);
-                    
-                    // Show content
-                    getElement('blocks-loading').style.display = 'none';
-                    getElement('blocks-content').style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error loading blocks:', error);
-                    showNotification('Gagal memuat daftar blok');
-                    getElement('blocks-loading').style.display = 'none';
-                });
-        }
-        
-        // Function to update blocks pagination
-        function updateBlocksPagination(currentPage, totalItems) {
-            const totalPages = Math.ceil(totalItems / blocksPerPage);
-            let paginationHtml = '';
-            
-            // Previous button
-            paginationHtml += `
-                <button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}" 
-                    ${currentPage === 1 ? 'disabled' : `onclick="loadBlocks(${currentPage - 1})"`}>
-                    &laquo;
-                </button>
-            `;
-            
-            // Page buttons
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-            
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                paginationHtml += `
-                    <button class="pagination-btn ${i === currentPage ? 'active' : ''}" 
-                        onclick="loadBlocks(${i})">
-                        ${i}
-                    </button>
-                `;
-            }
-            
-            // Next button
-            paginationHtml += `
-                <button class="pagination-btn ${currentPage === totalPages ? 'disabled' : ''}" 
-                    ${currentPage === totalPages ? 'disabled' : `onclick="loadBlocks(${currentPage + 1})"`}>
-                    &raquo;
-                </button>
-            `;
-            
-            getElement('blocks-pagination').innerHTML = paginationHtml;
-        }
-        
-        // Function to load block details
-        function loadBlockDetails(blockHash) {
-            // Switch to search tab
-            switchTab('search');
-            
-            // Set search input to block hash
-            getElement('search-input').value = blockHash;
-            getElement('search-type').value = 'block';
-            
-            // Perform search
-            performSearch();
-        }
-        
-        // Function to load transactions
-        function loadTransactions(page) {
-            getElement('transactions-loading').style.display = 'flex';
-            getElement('transactions-content').style.display = 'none';
-            
-            // Load recent transactions
-            fetch(`${API_URL}/api/microbitcoin/transactions?limit=10`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(transactions => {
-                    // Update transactions list
-                    const txHtml = transactions.map(tx => `
-                        <div class="transaction-item" onclick="loadTransactionDetails('${tx.txid}')">
-                            <div class="transaction-hash">${tx.txid}</div>
-                            <div class="transaction-details">
-                                <div>Block: ${tx.blockhash ? tx.blockhash.substring(0, 10) + '...' : 'Mempool'}</div>
-                                <div>Time: ${formatDate(tx.time)}</div>
-                                <div>Size: ${formatFileSize(tx.size)}</div>
-                                <div>${tx.vin.length} Input(s), ${tx.vout.length} Output(s)</div>
-                            </div>
-                        </div>
-                    `).join('');
-                    
-                    getElement('transactions-list').innerHTML = txHtml || '<p style="padding: 15px; text-align: center;">No transactions found</p>';
-                    
-                    // Show content
-                    getElement('transactions-loading').style.display = 'none';
-                    getElement('transactions-content').style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error loading transactions:', error);
-                    showNotification('Failed to load transactions');
-                    getElement('transactions-loading').style.display = 'none';
-                });
-        }
-        
-        // Function to load transaction details
-        function loadTransactionDetails(txid) {
-            // Switch to search tab
-            switchTab('search');
-            
-            // Set search input to transaction id
-            getElement('search-input').value = txid;
-            getElement('search-type').value = 'transaction';
-            
-            // Perform search
-            performSearch();
-        }
-        
-        // Function to perform search
-        function performSearch() {
-            const searchQuery = getElement('search-input').value.trim();
-            const searchType = getElement('search-type').value;
-            
-            if (!searchQuery) {
-                getElement('search-error').textContent = 'Please enter a search query';
-                getElement('search-error').style.display = 'block';
-                getElement('search-results').style.display = 'none';
-                return;
-            }
-            
-            getElement('search-error').style.display = 'none';
-            getElement('search-results').innerHTML = '<div class="loading-container"><div class="loading"></div> Searching...</div>';
-            getElement('search-results').style.display = 'block';
-            
-            // Determine search type if auto
-            let endpoint = '';
-            
-            if (searchType === 'auto') {
-                // Numeric only - likely a block height
-                if (/^\d+$/.test(searchQuery)) {
-                    endpoint = `${API_URL}/api/microbitcoin/block/height/${searchQuery}`;
-                }
-                // 64 character hex - likely a block hash or txid
-                else if (/^[0-9a-fA-F]{64}$/.test(searchQuery)) {
-                    // Try as block hash first
-                    fetch(`${API_URL}/api/microbitcoin/block/hash?hash=${searchQuery}`)
-                        .then(response => {
-                            if (response.ok) {
-                                return response.json().then(data => {
-                                    displayBlockDetails(data);
-                                });
-                            } else {
-                                // Try as transaction hash
-                                return fetch(`${API_URL}/api/microbitcoin/transaction/${searchQuery}`)
-                                    .then(response => {
-                                        if (response.ok) {
-                                            return response.json().then(data => {
-                                                displayTransactionDetails(data);
-                                            });
-                                        } else {
-                                            throw new Error('Not found');
-                                        }
-                                    });
-                            }
-                        })
-                        .catch(error => {
-                            getElement('search-results').innerHTML = `
-                                <div class="error-message">
-                                    No results found for "${searchQuery}"
-                                </div>
-                            `;
-                        });
-                    return;
-                }
-                // Otherwise assume address
-                else {
-                    endpoint = `${API_URL}/api/microbitcoin/search?address=${searchQuery}`;
-                }
-            } else if (searchType === 'block') {
-                // If numeric, search by height, otherwise by hash
-                if (/^\d+$/.test(searchQuery)) {
-                    endpoint = `${API_URL}/api/microbitcoin/block/height/${searchQuery}`;
-                } else {
-                    endpoint = `${API_URL}/api/microbitcoin/block/hash?hash=${searchQuery}`;
-                }
-            } else if (searchType === 'transaction') {
-                endpoint = `${API_URL}/api/microbitcoin/transaction/${searchQuery}`;
-            } else if (searchType === 'address') {
-                endpoint = `${API_URL}/api/microbitcoin/search?address=${searchQuery}`;
-            }
-            
-            fetch(endpoint)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Display results based on search type
-                    if (searchType === 'block' || (searchType === 'auto' && /^\d+$/.test(searchQuery))) {
-                        displayBlockDetails(data);
-                    } else if (searchType === 'transaction') {
-                        displayTransactionDetails(data);
-                    } else if (searchType === 'address' || (searchType === 'auto' && !/^\d+$/.test(searchQuery) && !/^[0-9a-fA-F]{64}$/.test(searchQuery))) {
-                        displayAddressTransactions(data, searchQuery);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error performing search:', error);
-                    getElement('search-results').innerHTML = `
-                        <div class="error-message">
-                            No results found for "${searchQuery}"
-                        </div>
-                    `;
-                });
-        }
-        
-        // Function to display block details
-        function displayBlockDetails(block) {
-            let html = `
-                <h2>Block Details</h2>
-                
-                <div class="info-card">
-                    <div class="detail-row">
-                        <div class="detail-label">Height</div>
-                        <div class="detail-value">${block.height.toLocaleString()}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Hash</div>
-                        <div class="detail-value">${block.hash}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Previous Block</div>
-                        <div class="detail-value">
-                            <a href="#" onclick="loadBlockDetails('${block.previousblockhash}'); return false;">
-                                ${block.previousblockhash}
-                            </a>
-                        </div>
-                    </div>
-                    
-                    ${block.nextblockhash ? `
-                        <div class="detail-row">
-                            <div class="detail-label">Next Block</div>
-                            <div class="detail-value">
-                                <a href="#" onclick="loadBlockDetails('${block.nextblockhash}'); return false;">
-                                    ${block.nextblockhash}
-                                </a>
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Timestamp</div>
-                        <div class="detail-value">${formatDate(block.time)}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Difficulty</div>
-                        <div class="detail-value">${block.difficulty.toLocaleString()}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Merkle Root</div>
-                        <div class="detail-value">${block.merkleroot}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Version</div>
-                        <div class="detail-value">${block.version} (0x${block.versionHex})</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Bits</div>
-                        <div class="detail-value">${block.bits}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Nonce</div>
-                        <div class="detail-value">${block.nonce}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Size</div>
-                        <div class="detail-value">${formatFileSize(block.size)}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Weight</div>
-                        <div class="detail-value">${block.weight.toLocaleString()}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Transaction Count</div>
-                        <div class="detail-value">${block.tx.length.toLocaleString()}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Confirmations</div>
-                        <div class="detail-value">${block.confirmations.toLocaleString()}</div>
-                    </div>
-                </div>
-                
-                <div class="section-title">Transactions (${block.tx.length})</div>
-                
-                <div class="transaction-list">
-                    ${block.tx.slice(0, 10).map((txid, index) => `
-                        <div class="transaction-item">
-                            <div class="transaction-hash">
-                                <a href="#" onclick="loadTransactionDetails('${txid}'); return false;">${txid}</a>
-                            </div>
-                            <div class="transaction-details">
-                                <div>Transaction #${index + 1}</div>
-                            </div>
-                        </div>
-                    `).join('')}
-                    ${block.tx.length > 10 ? `
-                        <div style="padding: 15px; text-align: center;">
-                            Showing 10 of ${block.tx.length} transactions
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            getElement('search-results').innerHTML = html;
-        }
-        
-        // Function to display transaction details
-        function displayTransactionDetails(tx) {
-            // Calculate total input and output values
-            let totalInput = 0;
-            let totalOutput = 0;
-            
-            tx.vout.forEach(output => {
-                totalOutput += output.value;
-            });
-            
-            // Prepare HTML
-            let html = `
-                <h2>Transaction Details</h2>
-                
-                <div class="info-card">
-                    <div class="detail-row">
-                        <div class="detail-label">Transaction ID</div>
-                        <div class="detail-value">${tx.txid}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Block</div>
-                        <div class="detail-value">
-                            ${tx.blockhash ? `
-                                <a href="#" onclick="loadBlockDetails('${tx.blockhash}'); return false;">${tx.blockhash}</a>
-                            ` : 'Mempool (Unconfirmed)'}
-                        </div>
-                    </div>
-                    
-                    ${tx.time ? `
-                        <div class="detail-row">
-                            <div class="detail-label">Timestamp</div>
-                            <div class="detail-value">${formatDate(tx.time)}</div>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Size</div>
-                        <div class="detail-value">${formatFileSize(tx.size)}</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Weight</div>
-                        <div class="detail-value">${tx.weight.toLocaleString()}</div>
-                    </div>
-                    
-                    ${tx.confirmations ? `
-                        <div class="detail-row">
-                            <div class="detail-label">Confirmations</div>
-                            <div class="detail-value">${tx.confirmations.toLocaleString()}</div>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Total Output</div>
-                        <div class="detail-value">${totalOutput.toFixed(8)} MBC</div>
-                    </div>
-                    
-                    <div class="detail-row">
-                        <div class="detail-label">Fee</div>
-                        <div class="detail-value">${tx.fee ? tx.fee.toFixed(8) : 'N/A'} MBC</div>
-                    </div>
-                </div>
-                
-                <div class="section-title">Inputs (${tx.vin.length})</div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Input Type</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tx.vin.map((input, index) => `
-                            <tr>
-                                <td>${index + 1}</td>
-                                <td>${input.coinbase ? 'Coinbase' : 'Regular'}</td>
-                                <td>
-                                    ${input.coinbase ? `
-                                        <div class="detail-row">
-                                            <div class="detail-label">Coinbase:</div>
-                                            <div class="detail-value">${input.coinbase}</div>
-                                        </div>
-                                    ` : `
-                                        <div class="detail-row">
-                                            <div class="detail-label">TXID:</div>
-                                            <div class="detail-value">
-                                                <a href="#" onclick="loadTransactionDetails('${input.txid}'); return false;">${input.txid}</a>
-                                            </div>
-                                        </div>
-                                        <div class="detail-row">
-                                            <div class="detail-label">Vout:</div>
-                                            <div class="detail-value">${input.vout}</div>
-                                        </div>
-                                        <div class="detail-row">
-                                            <div class="detail-label">Script:</div>
-                                            <div class="detail-value">${input.scriptSig.asm}</div>
-                                        </div>
-                                    `}
-                                    <div class="detail-row">
-                                        <div class="detail-label">Sequence:</div>
-                                        <div class="detail-value">${input.sequence}</div>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                
-                <div class="section-title">Outputs (${tx.vout.length})</div>
-                
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Amount (MBC)</th>
-                            <th>Type</th>
-                            <th>Addresses</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tx.vout.map((output, index) => `
-                            <tr>
-                                <td>${output.n}</td>
-                                <td>${output.value.toFixed(8)}</td>
-                                <td>${output.scriptPubKey.type}</td>
-                                <td>
-                                    ${output.scriptPubKey.addresses ? 
-                                        output.scriptPubKey.addresses.map(address => 
-                                            `<a href="#" onclick="searchAddress('${address}'); return false;">${address}</a>`
-                                        ).join('<br>') : 
-                                        'No addresses'
-                                    }
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            
-            getElement('search-results').innerHTML = html;
-        }
-        
-        // Function to display address transactions
-        function displayAddressTransactions(transactions, address) {
-            if (transactions.length === 0) {
-                getElement('search-results').innerHTML = `
-                    <div class="error-message">
-                        No transactions found for address "${address}"
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = `
-                <h2>Address Transactions</h2>
-                <div class="info-card">
-                    <div class="detail-row">
-                        <div class="detail-label">Address</div>
-                        <div class="detail-value">${address}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Transactions</div>
-                        <div class="detail-value">${transactions.length}</div>
-                    </div>
-                </div>
-                
-                <div class="section-title">Transactions</div>
-                
-                <div class="transaction-list">
-                    ${transactions.map(tx => `
-                        <div class="transaction-item" onclick="loadTransactionDetails('${tx.txid}')">
-                            <div class="transaction-hash">${tx.txid}</div>
-                            <div class="transaction-details">
-                                <div>Block: ${tx.blockhash ? tx.blockhash.substring(0, 10) + '...' : 'Mempool'}</div>
-                                <div>Time: ${formatDate(tx.time)}</div>
-                                <div>Size: ${formatFileSize(tx.size)}</div>
-                                <div>${tx.vin.length} Input(s), ${tx.vout.length} Output(s)</div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            
-            getElement('search-results').innerHTML = html;
-        }
-        
-        // Function to search for address
-        function searchAddress(address) {
-            getElement('search-input').value = address;
-            getElement('search-type').value = 'address';
-            performSearch();
-        }
-        
-        // Load overview data when page loads
+        // Cek status antrian saat halaman dimuat
         document.addEventListener('DOMContentLoaded', function() {
-            loadOverviewData();
+            // Initialize the system
+            checkQueueStatus();
         });
+        
+        // Fungsi untuk memulai hitung mundur antrian
+        function startQueueTimer(expiryTimeStr) {
+            clearInterval(queueTimerInterval);
+            
+            const expiryTime = new Date(expiryTimeStr);
+            const queueTimerElement = getElement('queueTimer');
+            
+            queueTimerInterval = setInterval(function() {
+                const now = new Date();
+                const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
+                
+                if (timeLeft <= 0) {
+                    clearInterval(queueTimerInterval);
+                    checkQueueStatus(); // Periksa ulang status antrian setelah waktu habis
+                } else {
+                    queueTimerElement.textContent = formatTime(timeLeft);
+                }
+            }, 1000);
+        }
+        
+        // Fungsi untuk memeriksa status antrian
+        function checkQueueStatus() {
+            fetch(`${API_URL}/queueStatus`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Queue status:", data);
+                    
+                    if (data.success && data.isProcessing) {
+                        // Jika ada pembayaran berlangsung, tampilkan info antrian
+                        getElement('queueInfo').style.display = 'block';
+                        getElement('queueMessage').style.display = 'block';
+                        getElement('submitBtn').disabled = true;
+                        
+                        // Mulai hitung mundur antrian
+                        if (data.expiryTime) {
+                            startQueueTimer(data.expiryTime);
+                        }
+                        
+                        // Periksa kembali setelah 5 detik
+                        setTimeout(checkQueueStatus, 5000);
+                    } else {
+                        // Jika tidak ada antrian, sembunyikan pesan dan aktifkan form
+                        getElement('queueInfo').style.display = 'none';
+                        getElement('queueMessage').style.display = 'none';
+                        getElement('submitBtn').disabled = false;
+                        clearInterval(queueTimerInterval);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking queue status:', error);
+                    // Coba lagi setelah beberapa saat jika terjadi error
+                    setTimeout(checkQueueStatus, 10000);
+                });
+        }
+        
+        // Fungsi untuk membuat order
+        function createOrder() {
+            const name = getElement('name').value.trim();
+            const amount = parseFloat(getElement('amount').value.trim());
+            
+            // Validasi input
+            if (!name) {
+                alert('Silakan masukkan nama Anda');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('Silakan masukkan jumlah pembayaran yang valid');
+                return;
+            }
+            
+            // Tampilkan loading state
+            getElement('submitBtn').disabled = true;
+            getElement('submitBtn').innerHTML = '<div class="loading"></div> Memproses...';
+            
+            // Kirim permintaan ke server
+            const requestData = {
+                name: name,
+                amount: amount
+            };
+            
+            fetch(`${API_URL}/createOrder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Create order response:", data);
+                
+                // Reset loading state
+                getElement('submitBtn').disabled = false;
+                getElement('submitBtn').innerHTML = 'Buat Pembayaran';
+                
+                if (data.success) {
+                    // Simpan order ID
+                    orderId = data.orderId;
+                    
+                    // Update tampilan dengan detail pembayaran
+                    getElement('orderId').textContent = data.orderId;
+                    getElement('customerName').textContent = name;
+                    getElement('paymentAmount').textContent = formatCurrency(amount);
+                    
+                    // Tampilkan gambar QR
+                    getElement('qrImage').src = data.qrImageUrl || '/static/wonpay.png';
+                    
+// Sembunyikan form dan tampilkan container pembayaran
+getElement('orderForm').style.display = 'none';
+                    getElement('paymentContainer').style.display = 'block';
+                    
+                    // Mulai hitung mundur
+                    startCountdown();
+                    
+                    // Periksa status pembayaran setiap 3 detik
+                    checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
+                    
+                } else if (data.queueStatus) {
+                    // Jika ada antrian, tampilkan pesan dan info antrian
+                    getElement('queueMessage').style.display = 'block';
+                    getElement('queueInfo').style.display = 'block';
+                    getElement('submitBtn').disabled = true;
+                    
+                    if (data.expiryTime) {
+                        startQueueTimer(data.expiryTime);
+                    }
+                    
+                    // Periksa kembali setelah 5 detik
+                    setTimeout(checkQueueStatus, 5000);
+                    
+                    showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
+                } else {
+                    // Tampilkan pesan error
+                    alert('Gagal membuat pembayaran: ' + (data.message || 'Terjadi kesalahan'));
+                }
+            })
+            .catch(error => {
+                console.error('Error creating order:', error);
+                getElement('submitBtn').disabled = false;
+                getElement('submitBtn').innerHTML = 'Buat Pembayaran';
+                alert('Terjadi kesalahan. Silakan coba lagi.');
+            });
+        }
+        
+        // Fungsi untuk memulai hitung mundur
+        function startCountdown() {
+            let timeLeft = 300; // 5 menit
+            getElement('countdown').textContent = timeLeft;
+            
+            countdownInterval = setInterval(function() {
+                timeLeft--;
+                getElement('countdown').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    clearInterval(checkPaymentStatusInterval);
+                    // Tampilkan pesan pembayaran kedaluwarsa
+                    displayPaymentStatus('failed', 'Pembayaran kedaluwarsa. Silakan coba lagi.');
+                }
+            }, 1000);
+        }
+        
+        // Fungsi untuk memeriksa status pembayaran
+        function checkPaymentStatus() {
+            if (!orderId) return;
+            
+            fetch(`${API_URL}/checkPayment/${orderId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Payment status:", data);
+                    
+                    if (data.success) {
+                        if (data.status === 'success') {
+                            clearInterval(checkPaymentStatusInterval);
+                            clearInterval(countdownInterval);
+                            displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+                            fetchPaymentStats(); // Update stats after successful payment
+                        } else if (data.status === 'failed') {
+                            clearInterval(checkPaymentStatusInterval);
+                            clearInterval(countdownInterval);
+                            displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking payment status:', error);
+                });
+        }
+        
+        // Fungsi untuk menampilkan status pembayaran
+        function displayPaymentStatus(status, message) {
+            // Sembunyikan container pembayaran
+            getElement('paymentContainer').style.display = 'none';
+            
+            // Update dan tampilkan status
+            const statusElement = getElement('paymentStatus');
+            statusElement.textContent = message;
+            
+            if (status === 'success') {
+                statusElement.className = 'status-message success';
+                showNotification('Pembayaran berhasil!');
+            } else {
+                statusElement.className = 'status-message error';
+            }
+            
+            // Tampilkan container status
+            getElement('statusContainer').style.display = 'block';
+        }
+        
+        // Fungsi untuk mereset form (mulai dari awal)
+        function resetForm() {
+            // Reset form input
+            getElement('name').value = '';
+            getElement('amount').value = '';
+            
+            // Reset status
+            orderId = null;
+            clearInterval(countdownInterval);
+            clearInterval(checkPaymentStatusInterval);
+            
+            // Reset tampilan
+            getElement('statusContainer').style.display = 'none';
+            getElement('paymentContainer').style.display = 'none';
+            getElement('orderForm').style.display = 'block';
+            
+            // Periksa status antrian
+            checkQueueStatus();
+        }
+        
+        // Fungsi untuk simulasi pembayaran (development only)
+        function simulatePayment() {
+            if (!orderId) {
+                showNotification('Tidak ada pembayaran aktif untuk disimulasikan');
+                return;
+            }
+            
+            fetch(`${API_URL}/simulate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Pembayaran berhasil disimulasikan');
+                } else {
+                    showNotification('Gagal simulasi: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error simulating payment:', error);
+                showNotification('Terjadi kesalahan saat simulasi');
+            });
+        }
     </script>
 </body>
 </html>
