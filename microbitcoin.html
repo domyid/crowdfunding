@@ -575,10 +575,10 @@
                     getElement('paymentAmount').textContent = formatCurrency(amount);
                     
                     // Tampilkan gambar QR
-                    getElement('qrImage').src = data.qrImageUrl || '/static/wonpay.png';
+                    getElement('qrImage').src = data.qrImageURL || '/static/wonpay.png';
                     
-// Sembunyikan form dan tampilkan container pembayaran
-getElement('orderForm').style.display = 'none';
+                    // Sembunyikan form dan tampilkan container pembayaran
+                    getElement('orderForm').style.display = 'none';
                     getElement('paymentContainer').style.display = 'block';
                     
                     // Mulai hitung mundur
