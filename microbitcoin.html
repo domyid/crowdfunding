@@ -36,6 +36,7 @@
             align-items: center;
             margin-right: 10px;
             font-weight: 500;
+            visibility: hidden; /* Hide the back button since this is the main page */
         }
         
         h1 {
@@ -253,9 +254,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <a href="index.html" class="back-btn">
-                ← Kembali
-            </a>
             <h1>Pembayaran MerchCoin</h1>
         </div>
         
@@ -308,7 +306,7 @@
                 </div>
                 
                 <div class="input-group">
-                    <label for="amount">Jumlah Pembayaran</label>
+                    <label for="amount">Jumlah Pembayaran (Rp)</label>
                     <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
                 </div>
                 
@@ -333,7 +331,7 @@
                     <span id="countdown">300</span> detik
                 </div>
                 
-                <img id="qrImage" class="qr-image" src="" alt="QR Code">
+                <img id="qrImage" class="qr-image" src="/static/wonpay.png" alt="QR Code">
                 
                 <p class="status-message info">
                     Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
