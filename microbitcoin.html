@@ -348,7 +348,7 @@
                     <span id="countdown">300</span> detik
                 </div>
                 
-                <img id="microbitcoinImage" class="microbitcoin-image" src="static/wonpay.png" alt="QR Code">
+                <img id="microbitcoinImage" class="microbitcoin-image" src="wonpay.png" alt="QR Code">
                 
                 <p class="status-message info">
                     Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
@@ -570,7 +570,7 @@
                     getElement('customerWallet').textContent = data.walletCode;
                     
                     // Tampilkan gambar QR code
-                    getElement('microbitcoinImage').src = data.qrImageUrl || `static/wonpay.png`;
+                    getElement('microbitcoinImage').src = data.qrImageUrl || `wonpay.png`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
@@ -674,14 +674,14 @@
                             // Transaction already verified and confirmed in previous check
                             completeAllSteps(data.txHash, data.amount);
                         } else {
-                            // No transaction in mempool, check blockchain history
-                            step1Icon.innerHTML = '→';
-                            step1Status.textContent = 'Tidak ada transaksi di mempool. Melanjutkan ke tahap 2...';
+                            // No transaction in mempool
+                            step1Icon.innerHTML = '⚠️';
+                            step1Icon.style.backgroundColor = '#ffc107';
+                            step1Icon.style.color = 'black';
+                            step1Status.textContent = 'Tidak ada transaksi di mempool. Mencoba lagi...';
                             
-                            // Proceed to step 2
-                            setTimeout(() => {
-                                startVerificationStep2();
-                            }, 1000);
+                            // Check again after a delay before moving to step 2
+                            setTimeout(startVerificationStep1, 5000);
                         }
                     } else if (data.status === 'expired') {
                         // Payment expired
@@ -759,8 +759,10 @@
                             completeAllSteps(data.txHash, data.amount);
                         } else {
                             // No transaction found in history
-                            step2Icon.innerHTML = '○';
-                            step2Status.textContent = 'Belum ada transaksi di blockchain. Menunggu...';
+                            step2Icon.innerHTML = '⚠️';
+                            step2Icon.style.backgroundColor = '#ffc107';
+                            step2Icon.style.color = 'black';
+                            step2Status.textContent = 'Belum ada transaksi di blockchain. Menunggu dan mencoba lagi...';
                             
                             // Check the remaining time
                             const remainingTime = data.remainingTime || 0;
@@ -768,8 +770,8 @@
                                 // Payment expired
                                 displayPaymentStatus('failed', 'Pembayaran kedaluwarsa. Silakan coba lagi.');
                             } else {
-                                // Check again after a delay
-                                setTimeout(startVerificationStep2, 5000);
+                                // Check mempool again after a delay (go back to step 1)
+                                setTimeout(startVerificationStep1, 5000);
                             }
                         }
                     } else if (data.status === 'expired') {
@@ -779,8 +781,8 @@
                         // Error or still waiting for transaction
                         step2Status.textContent = 'Menunggu transaksi... Akan memeriksa kembali.';
                         
-                        // Check again after a delay
-                        setTimeout(startVerificationStep2, 5000);
+                        // Check mempool again after a delay (go back to step 1)
+                        setTimeout(startVerificationStep1, 5000);
                     }
                 })
                 .catch(error => {
@@ -788,7 +790,7 @@
                     step2Status.textContent = 'Gagal memeriksa blockchain. Mencoba kembali...';
                     
                     // Retry after a delay
-                    setTimeout(startVerificationStep2, 5000);
+                    setTimeout(startVerificationStep1, 5000);
                 });
         }
         
