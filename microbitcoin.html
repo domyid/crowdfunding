@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pembayaran MerchCoin</title>
+    <title>Pembayaran MicroBitcoin</title>
     
     <style>
         body {
@@ -36,7 +36,6 @@
             align-items: center;
             margin-right: 10px;
             font-weight: 500;
-            visibility: hidden; /* Hide the back button since this is the main page */
         }
         
         h1 {
@@ -92,7 +91,7 @@
             text-align: center;
         }
         
-        .qr-image {
+        .microbitcoin-image {
             max-width: 100%;
             height: auto;
             margin: 20px 0;
@@ -224,69 +223,43 @@
             font-weight: bold;
         }
         
-        .stats-card {
+        .receiver-wallet {
+            word-break: break-all;
             background-color: #f0f8ff;
+            padding: 10px;
             border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-left: 4px solid #4CAF50;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
         }
-        
-        .stats-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
+
+        .payment-instruction {
+            text-align: left;
+            margin: 15px 0;
+            font-size: 14px;
+            line-height: 1.5;
         }
-        
-        .stats-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4CAF50;
+
+        .payment-instruction ol {
+            padding-left: 20px;
         }
-        
-        .stats-label {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+
+        .payment-instruction li {
+            margin-bottom: 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Pembayaran MerchCoin</h1>
+            <a href="index.html" class="back-btn">
+                ← Kembali
+            </a>
+            <h1>Pembayaran MicroBitcoin</h1>
         </div>
         
         <div class="tabs">
             <div class="tab active" onclick="switchTab('payment')">Pembayaran</div>
-            <div class="tab" onclick="switchTab('stats')">Statistik</div>
-        </div>
-        
-        <!-- Stats Dashboard -->
-        <div id="stats-tab" class="tab-content">
-            <h2>Statistik Pembayaran</h2>
-            
-            <div class="stats-card">
-                <div class="stats-title">Total Pembayaran</div>
-                <div class="stats-value" id="totalAmount">Rp 0</div>
-                <div class="stats-label">Total nilai pembayaran yang berhasil</div>
-            </div>
-            
-            <div class="stats-card">
-                <div class="stats-title">Jumlah Transaksi</div>
-                <div class="stats-value" id="totalCount">0</div>
-                <div class="stats-label">Total transaksi yang berhasil</div>
-            </div>
-            
-            <div class="stats-card">
-                <div class="stats-title">Terakhir Diperbarui</div>
-                <div class="stats-value" id="lastUpdated">-</div>
-                <div class="stats-label">Waktu pembaruan terakhir</div>
-            </div>
-            
-            <button id="refreshStatsBtn" class="btn" onclick="fetchPaymentStats()" style="margin-top: 15px;">
-                Refresh Statistik
-            </button>
         </div>
         
         <!-- Queue Info -->
@@ -301,13 +274,8 @@
             <!-- Form untuk membuat order -->
             <div id="orderForm">
                 <div class="input-group">
-                    <label for="name">Nama Lengkap</label>
-                    <input type="text" id="name" class="form-control" placeholder="Masukkan nama lengkap Anda">
-                </div>
-                
-                <div class="input-group">
-                    <label for="amount">Jumlah Pembayaran (Rp)</label>
-                    <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
+                    <label for="walletcode">Kode Wallet MicroBitcoin</label>
+                    <input type="text" id="walletcode" class="form-control" placeholder="Masukkan kode wallet Anda">
                 </div>
                 
                 <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
@@ -317,21 +285,34 @@
                 </div>
             </div>
             
-            <!-- Container pembayaran QR -->
+            <!-- Container pembayaran microbitcoin -->
             <div id="paymentContainer" class="payment-container">
                 <div class="order-details">
                     <p><strong>Order ID:</strong> <span id="orderId"></span></p>
-                    <p><strong>Nama:</strong> <span id="customerName"></span></p>
-                    <p><strong>Jumlah:</strong> Rp <span id="paymentAmount"></span></p>
+                    <p><strong>Wallet Code:</strong> <span id="customerWallet"></span></p>
                 </div>
                 
-                <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
+                <p>Silakan transfer MicroBitcoin ke alamat wallet berikut:</p>
+                
+                <div class="receiver-wallet" id="receiverWallet">BXheTnryBeec7Ere3zsuRmWjB1LiyCFpec</div>
+                
+                <div class="payment-instruction">
+                    <h3>Petunjuk Pembayaran:</h3>
+                    <ol>
+                        <li>Buka aplikasi wallet MicroBitcoin Anda</li>
+                        <li>Pilih opsi "Send" atau "Transfer"</li>
+                        <li>Masukkan alamat wallet di atas sebagai tujuan</li>
+                        <li>Masukkan jumlah yang ingin Anda transfer</li>
+                        <li>Konfirmasi dan kirim transaksi</li>
+                        <li>Tunggu hingga transaksi Anda dikonfirmasi oleh jaringan</li>
+                    </ol>
+                </div>
                 
                 <div class="timer">
                     <span id="countdown">300</span> detik
                 </div>
                 
-                <img id="qrImage" class="qr-image" src="/static/wonpay.png" alt="QR Code">
+                <img id="microbitcoinImage" class="microbitcoin-image" src="static/wonpay.png" alt="QR Code">
                 
                 <p class="status-message info">
                     Pembayaran akan otomatis kedaluwarsa jika tidak diselesaikan dalam waktu yang ditentukan
@@ -356,7 +337,8 @@
         let countdownInterval = null;
         let checkPaymentStatusInterval = null;
         let queueTimerInterval = null;
-        const API_URL = "/api/merchcoin"; // Base API URL
+        const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
+        const RECEIVER_WALLET = "BXheTnryBeec7Ere3zsuRmWjB1LiyCFpec";
         
         // Fungsi untuk mengambil elemen DOM
         function getElement(id) {
@@ -384,11 +366,6 @@
                     tab.classList.add('active');
                 }
             });
-            
-            // Jika tab statistik dipilih, perbarui data
-            if (tabName === 'stats') {
-                fetchPaymentStats();
-            }
         }
         
         // Format number to currency
@@ -407,30 +384,6 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
-        }
-        
-        // Fetch payment statistics
-        function fetchPaymentStats() {
-            const refreshBtn = getElement('refreshStatsBtn');
-            refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<div class="loading"></div> Memperbarui...';
-            
-            fetch(`${API_URL}/totalPayments`)
-                .then(response => response.json())
-                .then(data => {
-                    getElement('totalAmount').textContent = formatCurrency(data.totalAmount);
-                    getElement('totalCount').textContent = formatCurrency(data.count);
-                    getElement('lastUpdated').textContent = formatDate(data.lastUpdated);
-                    
-                    refreshBtn.disabled = false;
-                    refreshBtn.innerHTML = 'Refresh Statistik';
-                })
-                .catch(error => {
-                    console.error('Error fetching payment stats:', error);
-                    refreshBtn.disabled = false;
-                    refreshBtn.innerHTML = 'Refresh Statistik';
-                    showNotification('Gagal memuat data statistik');
-                });
         }
         
         // Fungsi untuk menampilkan notifikasi popup
@@ -453,7 +406,10 @@
         
         // Cek status antrian saat halaman dimuat
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize the system
+            // Set receiver wallet address
+            getElement('receiverWallet').textContent = RECEIVER_WALLET;
+            
+            // Initialize the system - check queue status
             checkQueueStatus();
         });
         
@@ -479,7 +435,7 @@
         
         // Fungsi untuk memeriksa status antrian
         function checkQueueStatus() {
-            fetch(`${API_URL}/queueStatus`)
+            fetch(`${API_URL}/api/merchcoin/queueStatus`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -519,17 +475,11 @@
         
         // Fungsi untuk membuat order
         function createOrder() {
-            const name = getElement('name').value.trim();
-            const amount = parseFloat(getElement('amount').value.trim());
+            const walletCode = getElement('walletcode').value.trim();
             
             // Validasi input
-            if (!name) {
-                alert('Silakan masukkan nama Anda');
-                return;
-            }
-            
-            if (isNaN(amount) || amount <= 0) {
-                alert('Silakan masukkan jumlah pembayaran yang valid');
+            if (!walletCode) {
+                alert('Silakan masukkan kode wallet Anda');
                 return;
             }
             
@@ -539,11 +489,10 @@
             
             // Kirim permintaan ke server
             const requestData = {
-                name: name,
-                amount: amount
+                walletcode: walletCode
             };
             
-            fetch(`${API_URL}/createOrder`, {
+            fetch(`${API_URL}/api/merchcoin/createOrder`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -569,11 +518,10 @@
                     
                     // Update tampilan dengan detail pembayaran
                     getElement('orderId').textContent = data.orderId;
-                    getElement('customerName').textContent = name;
-                    getElement('paymentAmount').textContent = formatCurrency(amount);
+                    getElement('customerWallet').textContent = data.walletCode;
                     
-                    // Tampilkan gambar QR
-                    getElement('qrImage').src = data.qrImageURL || '/static/wonpay.png';
+                    // Tampilkan gambar QR code
+                    getElement('microbitcoinImage').src = data.qrImageUrl || `static/wonpay.png`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
@@ -601,7 +549,7 @@
                     showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
                 } else {
                     // Tampilkan pesan error
-                    alert('Gagal membuat pembayaran: ' + (data.message || 'Terjadi kesalahan'));
+                    alert('Gagal membuat pembayaran: ' + data.message);
                 }
             })
             .catch(error => {
@@ -634,7 +582,7 @@
         function checkPaymentStatus() {
             if (!orderId) return;
             
-            fetch(`${API_URL}/checkPayment/${orderId}`)
+            fetch(`${API_URL}/api/merchcoin/checkPayment/${orderId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -648,8 +596,11 @@
                         if (data.status === 'success') {
                             clearInterval(checkPaymentStatusInterval);
                             clearInterval(countdownInterval);
-                            displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
-                            fetchPaymentStats(); // Update stats after successful payment
+                            displayPaymentStatus(
+                                'success', 
+                                `Pembayaran berhasil! Terima kasih.<br>Amount: ${data.amount} MBC<br>TxHash: ${data.txHash}`
+                            );
+                            showNotification('Pembayaran berhasil!');
                         } else if (data.status === 'failed') {
                             clearInterval(checkPaymentStatusInterval);
                             clearInterval(countdownInterval);
@@ -669,11 +620,10 @@
             
             // Update dan tampilkan status
             const statusElement = getElement('paymentStatus');
-            statusElement.textContent = message;
+            statusElement.innerHTML = message;
             
             if (status === 'success') {
                 statusElement.className = 'status-message success';
-                showNotification('Pembayaran berhasil!');
             } else {
                 statusElement.className = 'status-message error';
             }
@@ -685,8 +635,7 @@
         // Fungsi untuk mereset form (mulai dari awal)
         function resetForm() {
             // Reset form input
-            getElement('name').value = '';
-            getElement('amount').value = '';
+            getElement('walletcode').value = '';
             
             // Reset status
             orderId = null;
@@ -700,33 +649,6 @@
             
             // Periksa status antrian
             checkQueueStatus();
-        }
-        
-        // Fungsi untuk simulasi pembayaran (development only)
-        function simulatePayment() {
-            if (!orderId) {
-                showNotification('Tidak ada pembayaran aktif untuk disimulasikan');
-                return;
-            }
-            
-            fetch(`${API_URL}/simulate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Pembayaran berhasil disimulasikan');
-                } else {
-                    showNotification('Gagal simulasi: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error simulating payment:', error);
-                showNotification('Terjadi kesalahan saat simulasi');
-            });
         }
     </script>
 </body>
