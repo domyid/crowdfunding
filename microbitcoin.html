@@ -244,6 +244,34 @@
             border-radius: 3px;
             font-family: monospace;
         }
+        
+        .checking-dots {
+            display: inline-block;
+        }
+        
+        .checking-dots .dot {
+            display: inline-block;
+            opacity: 0;
+            animation: dotFade 1.5s infinite;
+        }
+        
+        .checking-dots .dot1 {
+            animation-delay: 0s;
+        }
+        
+        .checking-dots .dot2 {
+            animation-delay: 0.5s;
+        }
+        
+        .checking-dots .dot3 {
+            animation-delay: 1s;
+        }
+        
+        @keyframes dotFade {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -305,7 +333,16 @@
                 </div>
                 <div class="step">
                     <div id="step2Circle" class="step-circle"></div>
-                    <div class="step-text">Step 2: Cek kode TX pada transaksi</div>
+                    <div class="step-text">
+                        Step 2: Cek kode TX pada transaksi 
+                        <span id="step2Checking" style="display: none;">
+                            <span class="checking-dots">
+                                <span class="dot dot1">.</span>
+                                <span class="dot dot2">.</span>
+                                <span class="dot dot3">.</span>
+                            </span>
+                        </span>
+                    </div>
                 </div>
                 <div class="step">
                     <div id="step3Circle" class="step-circle"></div>
@@ -561,10 +598,16 @@
                     // If we're at step 1 (found in mempool) but not yet step 2 (in history),
                     // increase the checking frequency to check more aggressively
                     if (data.step1Complete && !data.step2Complete) {
+                        // Show checking animation for step 2
+                        document.getElementById('step2Checking').style.display = 'inline-block';
+                        
                         // Decrease the interval to check more frequently (every 1 second)
                         clearInterval(checkPaymentStatusInterval);
                         checkPaymentStatusInterval = setInterval(checkPaymentStatus, 1000);
                     } else if (data.step2Complete) {
+                        // Hide checking animation once step 2 is complete
+                        document.getElementById('step2Checking').style.display = 'none';
+                        
                         // Once step 2 is complete, slow down the checks again
                         clearInterval(checkPaymentStatusInterval);
                         checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
@@ -633,6 +676,7 @@
             document.getElementById('step1Circle').classList.remove('complete');
             document.getElementById('step2Circle').classList.remove('complete');
             document.getElementById('step3Circle').classList.remove('complete');
+            document.getElementById('step2Checking').style.display = 'none';
             document.getElementById('transactionDetails').style.display = 'none';
             
             // Check queue status
