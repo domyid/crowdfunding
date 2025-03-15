@@ -301,11 +301,15 @@
                 <h3 style="margin-top: 0;">Status Verifikasi:</h3>
                 <div class="step">
                     <div id="step1Circle" class="step-circle"></div>
-                    <div class="step-text">Step 1: Cek mempool transaksi</div>
+                    <div class="step-text">Step 1: Cek transaksi dalam mempool</div>
+                </div>
+                <div class="step">
+                    <div id="step2Circle" class="step-circle"></div>
+                    <div class="step-text">Step 2: Cek history transaksi</div>
                 </div>
                 <div class="step">
                     <div id="step3Circle" class="step-circle"></div>
-                    <div class="step-text">Step 2: Konfirmasi transaksi</div>
+                    <div class="step-text">Step 3: Konfirmasi detail transaksi</div>
                 </div>
                 
                 <div id="transactionDetails" class="transaction-details" style="display: none;">
@@ -532,33 +536,44 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Update verification steps
+                    // Update verification steps based on the updated backend
                     if (data.step1Complete) {
                         document.getElementById('step1Circle').classList.add('complete');
-                        // Show transaction ID if available
-                        if (data.txid) {
-                            document.getElementById('transactionId').textContent = data.txid;
-                            document.getElementById('transactionDetails').style.display = 'block';
-                        }
+                    }
+                    
+                    // New step for transaction history check
+                    if (data.step2Complete) {
+                        document.getElementById('step2Circle').classList.add('complete');
                     }
                     
                     if (data.step3Complete) {
                         document.getElementById('step3Circle').classList.add('complete');
                     }
                     
+                    // Show transaction details when available
+                    if (data.txid) {
+                        document.getElementById('transactionId').textContent = data.txid;
+                        document.getElementById('transactionDetails').style.display = 'block';
+                    }
+                    
                     if (data.amount > 0) {
-                        document.getElementById('transactionAmount').textContent = data.amount;
+                        document.getElementById('transactionAmount').textContent = data.amount.toFixed(8);
+                    }
+                    
+                    // Update payment status message if available
+                    if (data.message) {
+                        document.getElementById('paymentStatus').textContent = data.message;
                     }
                     
                     if (data.success) {
                         if (data.status === 'success') {
                             // Payment successful
                             clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount} MBC`);
+                            displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount.toFixed(8)} MBC`);
                             
                             // Show transaction details
                             document.getElementById('successTxId').textContent = data.txid;
-                            document.getElementById('successAmount').textContent = data.amount;
+                            document.getElementById('successAmount').textContent = data.amount.toFixed(8);
                             document.getElementById('successDetails').style.display = 'block';
                         } else if (data.status === 'failed') {
                             // Payment failed
@@ -611,6 +626,7 @@
             
             // Reset verification steps
             document.getElementById('step1Circle').classList.remove('complete');
+            document.getElementById('step2Circle').classList.remove('complete');
             document.getElementById('step3Circle').classList.remove('complete');
             document.getElementById('transactionDetails').style.display = 'none';
             
