@@ -435,7 +435,7 @@
             fetch(`${API_URL}/api/crowdfunding/userinfo`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': getCookie("login")
+                    'login': getCookie("login")  // Gunakan 'login' header sesuai dengan iqsoal.go
                 }
             })
             .then(response => {
@@ -606,7 +606,8 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': getCookie("login")
+                    'login': getCookie("login")  // Kirim token untuk autentikasi user
+                    // Tidak perlu Basic Auth di sini - akan ditangani di sisi server
                 },
                 body: JSON.stringify({
                     amount: amount
@@ -637,7 +638,7 @@
                     getElement('paymentAmount').textContent = formatCurrency(amount);
                     
                     // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.QRISImageURL || `static/qris.jpeg`;
+                    getElement('qrisImage').src = data.QRISImageURL || data.qrisImageUrl || "qris.png";
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
@@ -698,30 +699,35 @@
         function checkPaymentStatus() {
             if (!orderId) return;
             
-            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`, {
+                method: 'GET',
+                headers: {
+                    'login': getCookie("login")  // Gunakan token untuk autentikasi
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Payment status:", data);
+                
+                if (data.success) {
+                    if (data.status === 'success') {
+                        clearInterval(checkPaymentStatusInterval);
+                        displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+                        fetchPaymentStats(); // Update stats after successful payment
+                    } else if (data.status === 'failed') {
+                        clearInterval(checkPaymentStatusInterval);
+                        displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Payment status:", data);
-                    
-                    if (data.success) {
-                        if (data.status === 'success') {
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
-                            fetchPaymentStats(); // Update stats after successful payment
-                        } else if (data.status === 'failed') {
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking payment status:', error);
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error checking payment status:', error);
+            });
         }
         
         // Fungsi untuk menampilkan status pembayaran
