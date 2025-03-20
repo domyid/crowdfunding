@@ -411,42 +411,36 @@
         // Get user info from token
         function getUserInfo() {
             fetch(`${API_URL}/api/crowdfunding/userinfo`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': getCookie("login")
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    userInfo = {
-                        name: data.name || "N/A",
-                        phoneNumber: data.phoneNumber || "N/A",
-                        npm: data.npm || "N/A"
-                    };
-                    
-                    // Update UI with user info
-                    const userInfoElement = document.getElementById('userInfo');
-                    userInfoElement.innerHTML = `
-                        <p><strong>Nama:</strong> ${userInfo.name}</p>
-                        <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
-                        <p><strong>NPM:</strong> ${userInfo.npm}</p>
-                    `;
-                } else {
-                    showNotification("Gagal mendapatkan informasi pengguna. Silakan login kembali.");
-                    document.getElementById('submitBtn').disabled = true;
-                }
-            })
-            .catch(error => {
-                console.error('Error getting user info:', error);
-                showNotification("Gagal mendapatkan informasi pengguna. Silakan login kembali.");
-                document.getElementById('submitBtn').disabled = true;
-            });
+    method: 'GET',
+    headers: {
+        'login': getCookie("login")  // Gunakan 'login' bukan 'Authorization'
+    }
+})
+.then(response => {
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+})
+.then(data => {
+    // Tampilkan informasi user
+    userInfo = {
+        name: data.name || "N/A",
+        phoneNumber: data.phoneNumber || "N/A",
+        npm: data.npm || "N/A"
+    };
+    
+    // Update UI dengan user info
+    const userInfoElement = document.getElementById('userInfo');
+    userInfoElement.innerHTML = `
+        <p><strong>Nama:</strong> ${userInfo.name}</p>
+        <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+        <p><strong>NPM:</strong> ${userInfo.npm}</p>
+    `;
+})
+.catch(error => {
+    console.error('Error getting user info:', error);
+});
         }
         
         // Helper function to get cookie
@@ -542,13 +536,13 @@
             
             // Send request to server
             fetch(`${API_URL}/api/crowdfunding/microbitcoin/createOrder`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': getCookie("login")
-                },
-                body: JSON.stringify({}), // No need to send any data, all from token
-            })
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'login': getCookie("login")  // Gunakan 'login' bukan 'Authorization'
+    },
+    body: JSON.stringify({})
+})
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
