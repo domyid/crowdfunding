@@ -262,6 +262,18 @@
             border-radius: 3px;
             font-family: monospace;
         }
+
+        .user-info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .user-info p {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -280,13 +292,13 @@
             <p>Mohon tunggu hingga pembayaran selesai atau waktu habis.</p>
         </div>
         
+        <!-- User Info (will be populated from token) -->
+        <div id="userInfo" class="user-info">
+            <p><strong>Status:</strong> Mengambil informasi pengguna...</p>
+        </div>
+        
         <!-- Order Form -->
         <div id="orderForm">
-            <div class="input-group">
-                <label for="wonpayCode">Wallet Wonpay [isi dengan wallet code kamu]</label>
-                <input type="text" id="wonpayCode" class="form-control" placeholder="Masukkan wallet Anda">
-            </div>
-            
             <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
             
             <div id="queueMessage" class="status-message warning" style="display: none;">
@@ -298,7 +310,9 @@
         <div id="paymentContainer" class="payment-container">
             <div class="order-details">
                 <p><strong>Order ID:</strong> <span id="orderId"></span></p>
-                <p><strong>Kode Wonpay:</strong> <span id="customerWonpayCode"></span></p>
+                <p><strong>Nama:</strong> <span id="customerName"></span></p>
+                <p><strong>No. HP:</strong> <span id="customerPhone"></span></p>
+                <p><strong>NPM:</strong> <span id="customerNPM"></span></p>
             </div>
             
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
@@ -370,7 +384,12 @@
         let queueTimerInterval = null;
         let step1TimerInterval = null;
         let step2TimerInterval = null;
-        // const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
+        let userInfo = {
+            name: "",
+            phoneNumber: "",
+            npm: ""
+        };
+        const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         
         // Payment verification state
         const verificationState = {
@@ -383,10 +402,60 @@
             amount: 0
         };
         
-        // Check queue status when page loads
+        // Check queue status and get user info when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            getUserInfo();
             checkQueueStatus();
         });
+        
+        // Get user info from token
+        function getUserInfo() {
+            fetch(`${API_URL}/api/crowdfunding/userinfo`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': getCookie("login")
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    userInfo = {
+                        name: data.name || "N/A",
+                        phoneNumber: data.phoneNumber || "N/A",
+                        npm: data.npm || "N/A"
+                    };
+                    
+                    // Update UI with user info
+                    const userInfoElement = document.getElementById('userInfo');
+                    userInfoElement.innerHTML = `
+                        <p><strong>Nama:</strong> ${userInfo.name}</p>
+                        <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+                        <p><strong>NPM:</strong> ${userInfo.npm}</p>
+                    `;
+                } else {
+                    showNotification("Gagal mendapatkan informasi pengguna. Silakan login kembali.");
+                    document.getElementById('submitBtn').disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error getting user info:', error);
+                showNotification("Gagal mendapatkan informasi pengguna. Silakan login kembali.");
+                document.getElementById('submitBtn').disabled = true;
+            });
+        }
+        
+        // Helper function to get cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return "";
+        }
         
         // Format time from seconds to MM:SS
         function formatTime(seconds) {
@@ -408,7 +477,7 @@
         
         // Check queue status function
         function checkQueueStatus() {
-            fetch(`${API_URL}/api/merchcoin/queueStatus`)
+            fetch(`${API_URL}/api/crowdfunding/queueStatus`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -466,25 +535,19 @@
         
         // Create order function
         function createOrder() {
-            const wonpayCode = document.getElementById('wonpayCode').value.trim();
-            
-            if (!wonpayCode) {
-                showNotification('Silakan masukkan kode wonpay Anda');
-                return;
-            }
-            
             // Show loading state
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="loading"></div> Memproses...';
             
             // Send request to server
-            fetch(`${API_URL}/api/merchcoin/createOrder`, {
+            fetch(`${API_URL}/api/crowdfunding/microbitcoin/createOrder`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': getCookie("login")
                 },
-                body: JSON.stringify({ wonpayCode: wonpayCode }),
+                body: JSON.stringify({}), // No need to send any data, all from token
             })
             .then(response => {
                 if (!response.ok) {
@@ -503,11 +566,14 @@
                     
                     // Update payment details
                     document.getElementById('orderId').textContent = data.orderId;
-                    document.getElementById('customerWonpayCode').textContent = wonpayCode;
+                    document.getElementById('customerName').textContent = userInfo.name;
+                    document.getElementById('customerPhone').textContent = userInfo.phoneNumber;
+                    document.getElementById('customerNPM').textContent = userInfo.npm;
                     document.getElementById('walletAddress').textContent = data.walletAddress;
                     
                     // Show payment container and hide order form
                     document.getElementById('orderForm').style.display = 'none';
+                    document.getElementById('userInfo').style.display = 'none';
                     document.getElementById('paymentContainer').style.display = 'block';
                     
                     // Start countdown - 15 minutes
@@ -584,7 +650,7 @@
             }
             
             // Normal Step 1 check
-            fetch(`${API_URL}/api/merchcoin/checkPayment/${orderId}`)
+            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -638,7 +704,7 @@
         function checkStep2() {
             if (!orderId || !verificationState.txid) return;
             
-            fetch(`${API_URL}/api/merchcoin/checkStep2/${orderId}?txid=${verificationState.txid}`)
+            fetch(`${API_URL}/api/crowdfunding/microbitcoin/checkStep2/${orderId}?txid=${verificationState.txid}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -668,7 +734,7 @@
         function checkStep3() {
             if (!orderId || !verificationState.txid) return;
             
-            fetch(`${API_URL}/api/merchcoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
+            fetch(`${API_URL}/api/crowdfunding/microbitcoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -790,9 +856,6 @@
         
         // Reset form function
         function resetForm() {
-            // Reset form input
-            document.getElementById('wonpayCode').value = '';
-            
             // Reset all state
             orderId = null;
             
@@ -815,6 +878,7 @@
             document.getElementById('statusContainer').style.display = 'none';
             document.getElementById('paymentContainer').style.display = 'none';
             document.getElementById('orderForm').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'block';
             
             // Reset verification steps
             document.getElementById('step1Circle').classList.remove('complete', 'processing');

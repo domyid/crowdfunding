@@ -248,6 +248,18 @@
             color: #666;
             margin-top: 5px;
         }
+        
+        .user-info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .user-info p {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -298,15 +310,15 @@
             <p>Mohon tunggu hingga pembayaran selesai atau waktu habis.</p>
         </div>
         
+        <!-- User Info (will be populated from token) -->
+        <div id="userInfo" class="user-info">
+            <p><strong>Status:</strong> Mengambil informasi pengguna...</p>
+        </div>
+        
         <!-- Pembayaran Tab -->
         <div id="payment-tab" class="tab-content active">
             <!-- Form untuk membuat order -->
             <div id="orderForm">
-                <div class="input-group">
-                    <label for="name">Nama Lengkap</label>
-                    <input type="text" id="name" class="form-control" placeholder="Masukkan nama lengkap Anda">
-                </div>
-                
                 <div class="input-group">
                     <label for="amount">Jumlah Pembayaran (Rp)</label>
                     <input type="number" id="amount" class="form-control" placeholder="Masukkan jumlah pembayaran">
@@ -324,6 +336,8 @@
                 <div class="order-details">
                     <p><strong>Order ID:</strong> <span id="orderId"></span></p>
                     <p><strong>Nama:</strong> <span id="customerName"></span></p>
+                    <p><strong>No. HP:</strong> <span id="customerPhone"></span></p>
+                    <p><strong>NPM:</strong> <span id="customerNPM"></span></p>
                     <p><strong>Jumlah:</strong> Rp <span id="paymentAmount"></span></p>
                 </div>
                 
@@ -358,7 +372,12 @@
         let countdownInterval = null;
         let checkPaymentStatusInterval = null;
         let queueTimerInterval = null;
-        // const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
+        let userInfo = {
+            name: "",
+            phoneNumber: "",
+            npm: ""
+        };
+        const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         
         // Fungsi untuk mengambil elemen DOM
         function getElement(id) {
@@ -411,17 +430,66 @@
             });
         }
         
+        // Get user info from token
+        function getUserInfo() {
+            fetch(`${API_URL}/api/crowdfunding/userinfo`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': getCookie("login")
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    userInfo = {
+                        name: data.name || "N/A",
+                        phoneNumber: data.phoneNumber || "N/A",
+                        npm: data.npm || "N/A"
+                    };
+                    
+                    // Update UI with user info
+                    const userInfoElement = document.getElementById('userInfo');
+                    userInfoElement.innerHTML = `
+                        <p><strong>Nama:</strong> ${userInfo.name}</p>
+                        <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+                        <p><strong>NPM:</strong> ${userInfo.npm}</p>
+                    `;
+                } else {
+                    showNotification("Gagal mendapatkan informasi pengguna. Silakan login kembali.");
+                    document.getElementById('submitBtn').disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error getting user info:', error);
+                showNotification("Gagal mendapatkan informasi pengguna. Silakan login kembali.");
+                document.getElementById('submitBtn').disabled = true;
+            });
+        }
+        
+        // Helper function to get cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return "";
+        }
+        
         // Fetch payment statistics
         function fetchPaymentStats() {
             const refreshBtn = getElement('refreshStatsBtn');
             refreshBtn.disabled = true;
             refreshBtn.innerHTML = '<div class="loading"></div> Memperbarui...';
             
-            fetch(`${API_URL}/api/totalPayments`)
+            fetch(`${API_URL}/api/crowdfunding/totals`)
                 .then(response => response.json())
                 .then(data => {
-                    getElement('totalAmount').textContent = `Rp ${formatCurrency(data.totalAmount)}`;
-                    getElement('totalCount').textContent = formatCurrency(data.count);
+                    getElement('totalAmount').textContent = `Rp ${formatCurrency(data.totalQRISAmount)}`;
+                    getElement('totalCount').textContent = formatCurrency(data.QRISCount);
                     getElement('lastUpdated').textContent = formatDate(data.lastUpdated);
                     
                     refreshBtn.disabled = false;
@@ -453,21 +521,10 @@
             return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
         
-        // Cek status antrian saat halaman dimuat
+        // Cek status antrian saat halaman dimuat dan get user info
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize the system
-            fetch(`${API_URL}/api/queueStatus`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Queue status:", data);
-                    // Check queue status
-                    checkQueueStatus();
-                })
-                .catch(error => {
-                    console.error('Error checking queue status:', error);
-                    // Still try to check queue status after a delay
-                    setTimeout(checkQueueStatus, 2000);
-                });
+            getUserInfo();
+            checkQueueStatus();
         });
         
         // Fungsi untuk memulai hitung mundur antrian
@@ -492,7 +549,7 @@
         
         // Fungsi untuk memeriksa status antrian
         function checkQueueStatus() {
-            fetch(`${API_URL}/api/queueStatus`)
+            fetch(`${API_URL}/api/crowdfunding/queueStatus`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -532,15 +589,9 @@
         
         // Fungsi untuk membuat order
         function createOrder() {
-            const name = getElement('name').value.trim();
             const amount = parseFloat(getElement('amount').value.trim());
             
             // Validasi input
-            if (!name) {
-                alert('Silakan masukkan nama Anda');
-                return;
-            }
-            
             if (isNaN(amount) || amount <= 0) {
                 alert('Silakan masukkan jumlah pembayaran yang valid');
                 return;
@@ -551,17 +602,15 @@
             getElement('submitBtn').innerHTML = '<div class="loading"></div> Memproses...';
             
             // Kirim permintaan ke server
-            const requestData = {
-                name: name,
-                amount: amount
-            };
-            
-            fetch(`${API_URL}/api/createOrder`, {
+            fetch(`${API_URL}/api/crowdfunding/qris/createOrder`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': getCookie("login")
                 },
-                body: JSON.stringify(requestData),
+                body: JSON.stringify({
+                    amount: amount
+                }),
             })
             .then(response => {
                 if (!response.ok) {
@@ -582,14 +631,17 @@
                     
                     // Update tampilan dengan detail pembayaran
                     getElement('orderId').textContent = data.orderId;
-                    getElement('customerName').textContent = name;
+                    getElement('customerName').textContent = userInfo.name;
+                    getElement('customerPhone').textContent = userInfo.phoneNumber;
+                    getElement('customerNPM').textContent = userInfo.npm;
                     getElement('paymentAmount').textContent = formatCurrency(amount);
                     
                     // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.qrisImageUrl || `static/qris.jpeg`;
+                    getElement('qrisImage').src = data.QRISImageURL || `static/qris.jpeg`;
                     
                     // Sembunyikan form dan tampilkan container pembayaran
                     getElement('orderForm').style.display = 'none';
+                    getElement('userInfo').style.display = 'none';
                     getElement('paymentContainer').style.display = 'block';
                     
                     // Mulai hitung mundur
@@ -646,7 +698,7 @@
         function checkPaymentStatus() {
             if (!orderId) return;
             
-            fetch(`${API_URL}/api/checkPayment/${orderId}`)
+            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -697,7 +749,6 @@
         // Fungsi untuk mereset form (mulai dari awal)
         function resetForm() {
             // Reset form input
-            getElement('name').value = '';
             getElement('amount').value = '';
             
             // Reset status
@@ -709,6 +760,7 @@
             getElement('statusContainer').style.display = 'none';
             getElement('paymentContainer').style.display = 'none';
             getElement('orderForm').style.display = 'block';
+            getElement('userInfo').style.display = 'block';
             
             // Periksa status antrian
             checkQueueStatus();
