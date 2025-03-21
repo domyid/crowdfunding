@@ -587,96 +587,101 @@
                 });
         }
         
-        // Fungsi untuk membuat order
-        function createOrder() {
-            const amount = parseFloat(getElement('amount').value.trim());
+      // Fungsi untuk membuat order
+function createOrder() {
+    const amount = parseFloat(getElement('amount').value.trim());
+    
+    // Validasi input
+    if (isNaN(amount) || amount <= 0) {
+        alert('Silakan masukkan jumlah pembayaran yang valid');
+        return;
+    }
+    
+    // Tampilkan loading state
+    getElement('submitBtn').disabled = true;
+    getElement('submitBtn').innerHTML = '<div class="loading"></div> Memproses...';
+    
+    // Kredensial Basic Auth (hardcoded untuk demo ini)
+    const username = "gilar";
+    const password = "wkwkgatau";
+    const base64Credentials = btoa(username + ":" + password);
+    
+    // Kirim permintaan ke server
+    fetch(`${API_URL}/api/crowdfunding/qris/createOrder`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'login': getCookie("login"),  // Token untuk informasi user
+            'Authorization': `Basic ${base64Credentials}`  // Basic Auth untuk QRIS
+        },
+        body: JSON.stringify({
+            amount: amount
+        }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Create order response:", data);
+        
+        // Reset loading state
+        getElement('submitBtn').disabled = false;
+        getElement('submitBtn').innerHTML = 'Buat Pembayaran';
+        
+        if (data.success) {
+            // Simpan order ID
+            orderId = data.orderId;
             
-            // Validasi input
-            if (isNaN(amount) || amount <= 0) {
-                alert('Silakan masukkan jumlah pembayaran yang valid');
-                return;
+            // Update tampilan dengan detail pembayaran
+            getElement('orderId').textContent = data.orderId;
+            getElement('customerName').textContent = userInfo.name;
+            getElement('customerPhone').textContent = userInfo.phoneNumber;
+            getElement('customerNPM').textContent = userInfo.npm;
+            getElement('paymentAmount').textContent = formatCurrency(amount);
+            
+            // Tampilkan gambar QRIS
+            getElement('qrisImage').src = data.QRISImageURL || data.qrisImageUrl || "qris.png";
+            
+            // Sembunyikan form dan tampilkan container pembayaran
+            getElement('orderForm').style.display = 'none';
+            getElement('userInfo').style.display = 'none';
+            getElement('paymentContainer').style.display = 'block';
+            
+            // Mulai hitung mundur
+            startCountdown();
+            
+            // Periksa status pembayaran setiap 3 detik
+            checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
+            
+        } else if (data.queueStatus) {
+            // Jika ada antrian, tampilkan pesan dan info antrian
+            getElement('queueMessage').style.display = 'block';
+            getElement('queueInfo').style.display = 'block';
+            getElement('submitBtn').disabled = true;
+            
+            if (data.expiryTime) {
+                startQueueTimer(data.expiryTime);
             }
             
-            // Tampilkan loading state
-            getElement('submitBtn').disabled = true;
-            getElement('submitBtn').innerHTML = '<div class="loading"></div> Memproses...';
+            // Periksa kembali setelah 5 detik
+            setTimeout(checkQueueStatus, 5000);
             
-            // Kirim permintaan ke server
-            fetch(`${API_URL}/api/crowdfunding/qris/createOrder`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'login': getCookie("login")  // Kirim token untuk autentikasi user
-                    // Tidak perlu Basic Auth di sini - akan ditangani di sisi server
-                },
-                body: JSON.stringify({
-                    amount: amount
-                }),
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Create order response:", data);
-                
-                // Reset loading state
-                getElement('submitBtn').disabled = false;
-                getElement('submitBtn').innerHTML = 'Buat Pembayaran';
-                
-                if (data.success) {
-                    // Simpan order ID
-                    orderId = data.orderId;
-                    
-                    // Update tampilan dengan detail pembayaran
-                    getElement('orderId').textContent = data.orderId;
-                    getElement('customerName').textContent = userInfo.name;
-                    getElement('customerPhone').textContent = userInfo.phoneNumber;
-                    getElement('customerNPM').textContent = userInfo.npm;
-                    getElement('paymentAmount').textContent = formatCurrency(amount);
-                    
-                    // Tampilkan gambar QRIS
-                    getElement('qrisImage').src = data.QRISImageURL || data.qrisImageUrl || "qris.png";
-                    
-                    // Sembunyikan form dan tampilkan container pembayaran
-                    getElement('orderForm').style.display = 'none';
-                    getElement('userInfo').style.display = 'none';
-                    getElement('paymentContainer').style.display = 'block';
-                    
-                    // Mulai hitung mundur
-                    startCountdown();
-                    
-                    // Periksa status pembayaran setiap 3 detik
-                    checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
-                    
-                } else if (data.queueStatus) {
-                    // Jika ada antrian, tampilkan pesan dan info antrian
-                    getElement('queueMessage').style.display = 'block';
-                    getElement('queueInfo').style.display = 'block';
-                    getElement('submitBtn').disabled = true;
-                    
-                    if (data.expiryTime) {
-                        startQueueTimer(data.expiryTime);
-                    }
-                    
-                    // Periksa kembali setelah 5 detik
-                    setTimeout(checkQueueStatus, 5000);
-                    
-                    showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
-                } else {
-                    // Tampilkan pesan error
-                    alert('Gagal membuat pembayaran: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error creating order:', error);
-                getElement('submitBtn').disabled = false;
-                getElement('submitBtn').innerHTML = 'Buat Pembayaran';
-                alert('Terjadi kesalahan. Silakan coba lagi.');
-            });
+            showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
+        } else {
+            // Tampilkan pesan error
+            alert('Gagal membuat pembayaran: ' + data.message);
         }
+    })
+    .catch(error => {
+        console.error('Error creating order:', error);
+        getElement('submitBtn').disabled = false;
+        getElement('submitBtn').innerHTML = 'Buat Pembayaran';
+        alert('Terjadi kesalahan. Silakan coba lagi.');
+    });
+}
         
         // Fungsi untuk memulai hitung mundur
         function startCountdown() {
@@ -695,40 +700,46 @@
             }, 1000);
         }
         
-        // Fungsi untuk memeriksa status pembayaran
-        function checkPaymentStatus() {
-            if (!orderId) return;
-            
-            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`, {
-                method: 'GET',
-                headers: {
-                    'login': getCookie("login")  // Gunakan token untuk autentikasi
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Payment status:", data);
-                
-                if (data.success) {
-                    if (data.status === 'success') {
-                        clearInterval(checkPaymentStatusInterval);
-                        displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
-                        fetchPaymentStats(); // Update stats after successful payment
-                    } else if (data.status === 'failed') {
-                        clearInterval(checkPaymentStatusInterval);
-                        displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error checking payment status:', error);
-            });
+       // Fungsi untuk memeriksa status pembayaran
+function checkPaymentStatus() {
+    if (!orderId) return;
+    
+    // Kredensial Basic Auth
+    const username = "gilar";
+    const password = "wkwkgatau";
+    const base64Credentials = btoa(username + ":" + password);
+    
+    fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`, {
+        method: 'GET',
+        headers: {
+            'login': getCookie("login"),  // Token user
+            'Authorization': `Basic ${base64Credentials}`  // Basic Auth
         }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Payment status:", data);
+        
+        if (data.success) {
+            if (data.status === 'success') {
+                clearInterval(checkPaymentStatusInterval);
+                displayPaymentStatus('success', 'Pembayaran berhasil! Terima kasih.');
+                fetchPaymentStats(); // Update stats after successful payment
+            } else if (data.status === 'failed') {
+                clearInterval(checkPaymentStatusInterval);
+                displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error checking payment status:', error);
+    });
+}
         
         // Fungsi untuk menampilkan status pembayaran
         function displayPaymentStatus(status, message) {
