@@ -67,7 +67,7 @@
         .btn {
             width: 100%;
             padding: 12px;
-            background-color: #4CAF50;
+            background-color: #384186;
             color: white;
             border: none;
             border-radius: 5px;
@@ -78,7 +78,7 @@
         }
         
         .btn:hover {
-            background-color: #45a049;
+            background-color: #2E3671;
         }
         
         .btn:disabled {
@@ -146,7 +146,7 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            background-color: #4CAF50;
+            background-color: #384186;
             color: white;
             padding: 15px;
             border-radius: 5px;
@@ -216,7 +216,7 @@
         }
         
         .step-circle.complete {
-            background-color: #4CAF50;
+            background-color: #384186;
         }
 
         .step-circle.processing {
@@ -275,20 +275,11 @@
             margin: 5px 0;
         }
         
-        /* Ravencoin specific styling */
         .ravencoin-logo {
-            max-width: 100px;
-            height: auto;
-            margin: 10px auto;
+            width: 80px;
+            height: 80px;
             display: block;
-        }
-        
-        .btn.ravencoin {
-            background-color: #384182;
-        }
-        
-        .btn.ravencoin:hover {
-            background-color: #2d3266;
+            margin: 0 auto 15px;
         }
     </style>
 </head>
@@ -300,9 +291,6 @@
             </a>
             <h1>Pembayaran Ravencoin</h1>
         </div>
-        
-        <!-- Ravencoin Logo -->
-        <img src="ravencoin-logo.png" alt="Ravencoin Logo" class="ravencoin-logo">
         
         <!-- Queue Info -->
         <div id="queueInfo" class="queue-info" style="display: none;">
@@ -318,7 +306,9 @@
         
         <!-- Order Form -->
         <div id="orderForm">
-            <button id="submitBtn" class="btn ravencoin" onclick="createOrder()">Buat Pembayaran Ravencoin</button>
+            <img class="ravencoin-logo" src="https://cryptologos.cc/logos/ravencoin-rvn-logo.png" alt="Ravencoin Logo">
+            <p style="text-align: center; margin-bottom: 20px;">Kirim Ravencoin (RVN) untuk melakukan pembayaran</p>
+            <button id="submitBtn" class="btn" onclick="createOrder()">Buat Pembayaran</button>
             
             <div id="queueMessage" class="status-message warning" style="display: none;">
                 Sedang ada pembayaran berlangsung. Mohon tunggu...
@@ -345,7 +335,6 @@
             <div class="wallet-address">
                 <p><strong>Alamat Wallet:</strong></p>
                 <p id="walletAddress"></p>
-                <p class="info" style="font-size: 12px; margin-top: 10px;">Salin alamat ini ke wallet Ravencoin Anda</p>
             </div>
             
             <!-- Verification Steps -->
@@ -353,19 +342,19 @@
                 <h3 style="margin-top: 0;">Status Verifikasi:</h3>
                 <div class="step">
                     <div id="step1Circle" class="step-circle"></div>
-                    <div class="step-text">Step 1: Deteksi transaksi</div>
+                    <div class="step-text">Step 1: Cek transaksi dalam mempool</div>
                 </div>
-                <div id="step1Waiting" class="step-waiting">Menunggu 5 menit sebelum lanjut ke step berikutnya... (<span id="step1Timer">05:00</span>)</div>
+                <div id="step1Waiting" class="step-waiting">Menunggu 7 menit sebelum lanjut ke step berikutnya... (<span id="step1Timer">07:00</span>)</div>
                 
                 <div class="step">
                     <div id="step2Circle" class="step-circle"></div>
-                    <div class="step-text">Step 2: Konfirmasi transaksi</div>
+                    <div class="step-text">Step 2: Cek history transaksi</div>
                 </div>
                 <div id="step2Waiting" class="step-waiting">Menunggu 1 menit sebelum lanjut ke step berikutnya... (<span id="step2Timer">01:00</span>)</div>
                 
                 <div class="step">
                     <div id="step3Circle" class="step-circle"></div>
-                    <div class="step-text">Step 3: Verifikasi final</div>
+                    <div class="step-text">Step 3: Konfirmasi detail transaksi</div>
                 </div>
                 
                 <div id="transactionDetails" class="transaction-details" style="display: none;">
@@ -388,7 +377,7 @@
                 <p><strong>Transaction ID:</strong> <span id="successTxId" class="transaction-id"></span></p>
                 <p><strong>Amount:</strong> <span id="successAmount">0</span> RVN</p>
             </div>
-            <button id="newPaymentBtn" class="btn ravencoin" onclick="resetForm()" style="margin-top: 15px;">
+            <button id="newPaymentBtn" class="btn" onclick="resetForm()" style="margin-top: 15px;">
                 Buat Pembayaran Baru
             </button>
         </div>
@@ -433,7 +422,7 @@
             fetch(`${API_URL}/api/crowdfunding/userinfo`, {
                 method: 'GET',
                 headers: {
-                    'login': getCookie("login")  // Using 'login' as header name
+                    'login': getCookie("login")  // Use 'login' not 'Authorization'
                 }
             })
             .then(response => {
@@ -559,7 +548,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'login': getCookie("login")  // Using 'login' as header name
+                    'login': getCookie("login")  // Use 'login' not 'Authorization'
                 },
                 body: JSON.stringify({})
             })
@@ -572,7 +561,7 @@
             .then(data => {
                 // Reset loading state
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Buat Pembayaran Ravencoin';
+                submitBtn.innerHTML = 'Buat Pembayaran';
                 
                 if (data.success) {
                     // Save order ID
@@ -616,7 +605,7 @@
             .catch(error => {
                 console.error('Error creating order:', error);
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Buat Pembayaran Ravencoin';
+                submitBtn.innerHTML = 'Buat Pembayaran';
                 showNotification('Terjadi kesalahan. Silakan coba lagi.');
             });
         }
@@ -683,7 +672,7 @@
                             document.getElementById('transactionId').textContent = data.txid;
                             document.getElementById('transactionDetails').style.display = 'block';
                             
-                            // Start the 5-minute wait before proceeding to step 2
+                            // Start the 7-minute wait before proceeding to step 2
                             startStep1Timer();
                             clearInterval(checkPaymentStatusInterval);
                         }
@@ -714,7 +703,7 @@
                 });
         }
         
-        // Function to check Step 2 status (called after 5-minute wait)
+        // Function to check Step 2 status (called after 7-minute wait)
         function checkStep2() {
             if (!orderId || !verificationState.txid) return;
             
@@ -748,13 +737,7 @@
         function checkStep3() {
             if (!orderId || !verificationState.txid) return;
             
-            // Include amount if available
-            let url = `${API_URL}/api/crowdfunding/ravencoin/checkStep3/${orderId}?txid=${verificationState.txid}`;
-            if (verificationState.amount > 0) {
-                url += `&amount=${verificationState.amount}`;
-            }
-            
-            fetch(url)
+            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -789,14 +772,14 @@
                 });
         }
         
-        // Start waiting timer for step 1 (5 minutes)
+        // Start waiting timer for step 1 (7 minutes)
         function startStep1Timer() {
             clearInterval(step1TimerInterval);
             
             document.getElementById('step1Circle').classList.add('processing');
             document.getElementById('step1Waiting').style.display = 'block';
             
-            let timeLeft = 5 * 60; // 5 minutes in seconds
+            let timeLeft = 7 * 60; // 7 minutes in seconds
             const timerElement = document.getElementById('step1Timer');
             timerElement.textContent = formatTime(timeLeft);
             
@@ -926,5 +909,3 @@
         // Panggil fungsi saat halaman dimuat
         document.addEventListener("DOMContentLoaded", verifyLogin);
     </script>
-</body>
-</html>
