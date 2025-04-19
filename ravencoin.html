@@ -85,6 +85,22 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
         
         .payment-container {
             display: none;
@@ -213,9 +229,19 @@
             border-radius: 50%;
             margin-right: 10px;
             background-color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
         }
         
         .step-circle.complete {
+            background-color: #28a745;
+        }
+
+        .step-circle.active {
             background-color: #384186;
         }
 
@@ -234,6 +260,13 @@
             font-size: 14px;
         }
 
+        .step-detail {
+            font-size: 12px;
+            color: #6c757d;
+            margin-left: 30px;
+            margin-top: 5px;
+        }
+
         .step-waiting {
             font-size: 12px;
             color: #856404;
@@ -248,11 +281,32 @@
             font-family: monospace;
             word-break: break-all;
             margin: 10px 0;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #384186;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .copy-btn:hover {
+            background: #2E3671;
         }
         
         .transaction-details {
             margin-top: 15px;
             font-size: 14px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
         }
         
         .transaction-id {
@@ -282,19 +336,73 @@
             margin: 0 auto 15px;
         }
 
-        .action-buttons {
-            margin: 15px 0;
+        .payment-action {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
         }
 
-        .payment-confirmation {
-            margin: 15px 0;
+        .verification-progress {
+            margin-top: 20px;
             display: none;
         }
 
-        .verification-status {
-            margin-top: 15px;
+        .verification-step {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin-right: 10px;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .step-indicator.active {
+            background-color: #384186;
+        }
+
+        .step-indicator.complete {
+            background-color: #28a745;
+        }
+
+        .pending-animation {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ffc107;
+            margin-left: 10px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.2; }
+            50% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+
+        .payment-instructions {
+            margin-bottom: 20px;
             font-size: 14px;
-            display: none;
+            text-align: left;
+        }
+
+        .payment-instructions ol {
+            padding-left: 20px;
+        }
+
+        .payment-instructions li {
+            margin-bottom: 8px;
         }
     </style>
 </head>
@@ -339,55 +447,72 @@
                 <p><strong>NPM:</strong> <span id="customerNPM"></span></p>
             </div>
             
-            <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
-            
             <div class="timer">
                 <span id="countdown">900</span> detik
+            </div>
+
+            <div class="payment-instructions">
+                <h3>Petunjuk Pembayaran:</h3>
+                <ol>
+                    <li>Buka wallet Ravencoin Anda</li>
+                    <li>Kirim RVN ke alamat wallet di bawah ini</li>
+                    <li>Setelah mengirim, klik tombol "Saya Sudah Bayar"</li>
+                    <li>Tunggu sistem memverifikasi pembayaran Anda</li>
+                </ol>
+            </div>
+            
+            <div class="wallet-address">
+                <p><strong>Alamat Wallet Ravencoin:</strong></p>
+                <p id="walletAddress"></p>
+                <button class="copy-btn" onclick="copyWalletAddress()">Salin</button>
             </div>
             
             <img id="ravencoinQR" class="ravencoin-image" src="ravencoin.png" alt="Ravencoin QR Code">
             
-            <div class="wallet-address">
-                <p><strong>Alamat Wallet:</strong></p>
-                <p id="walletAddress"></p>
-            </div>
-            
             <!-- Payment Confirmation -->
-            <div id="paymentConfirmation" class="payment-confirmation">
-                <p>Sudah melakukan pembayaran?</p>
-                <button id="confirmPaymentBtn" class="btn" onclick="confirmPaymentMade()">
-                    Ya, Saya Sudah Bayar
+            <div id="paymentAction" class="payment-action">
+                <p>Setelah mengirim payment, klik tombol di bawah ini:</p>
+                <button id="paymentConfirmBtn" class="btn btn-success" onclick="confirmPayment()">
+                    Saya Sudah Bayar
                 </button>
             </div>
             
-            <!-- Verification Steps -->
-            <div class="steps-container">
-                <h3 style="margin-top: 0;">Status Verifikasi:</h3>
-                <div class="step">
-                    <div id="step1Circle" class="step-circle"></div>
-                    <div class="step-text">Step 1: Cek transaksi dalam mempool</div>
-                </div>
-                <div id="step1Waiting" class="step-waiting">Menunggu 20 menit untuk konfirmasi... (<span id="step1Timer">20:00</span>)</div>
+            <!-- Verification Progress -->
+            <div id="verificationProgress" class="verification-progress">
+                <h3>Status Verifikasi Pembayaran:</h3>
                 
-                <div class="step">
-                    <div id="step2Circle" class="step-circle"></div>
-                    <div class="step-text">Step 2: Cek history transaksi</div>
+                <div class="verification-step">
+                    <div id="step1Indicator" class="step-indicator">1</div>
+                    <div>
+                        <div class="step-text">Mencari transaksi</div>
+                        <div id="step1Status" class="step-detail">Mencari transaksi Anda di blockchain...</div>
+                    </div>
                 </div>
                 
-                <div class="step">
-                    <div id="step3Circle" class="step-circle"></div>
-                    <div class="step-text">Step 3: Konfirmasi detail transaksi</div>
+                <div class="verification-step">
+                    <div id="step2Indicator" class="step-indicator">2</div>
+                    <div>
+                        <div class="step-text">Verifikasi detail transaksi</div>
+                        <div id="step2Status" class="step-detail">Menunggu transaksi ditemukan...</div>
+                    </div>
+                </div>
+                
+                <div class="verification-step">
+                    <div id="step3Indicator" class="step-indicator">3</div>
+                    <div>
+                        <div class="step-text">Konfirmasi blockchain</div>
+                        <div id="step3Status" class="step-detail">Menunggu transaksi terverifikasi...</div>
+                    </div>
                 </div>
                 
                 <div id="transactionDetails" class="transaction-details" style="display: none;">
                     <p><strong>Transaction ID:</strong></p>
                     <p id="transactionId" class="transaction-id"></p>
                     <p><strong>Amount:</strong> <span id="transactionAmount">0</span> RVN</p>
+                    <div id="confirmationWaiting" style="display: none;">
+                        <p>Menunggu konfirmasi blockchain <span id="confirmationTime">20:00</span></p>
+                    </div>
                 </div>
-            </div>
-            
-            <div id="verificationStatus" class="verification-status">
-                <p>Sedang memverifikasi pembayaran Anda. Mohon tunggu...</p>
             </div>
             
             <p class="status-message info">
@@ -415,9 +540,8 @@
     <script>
         let orderId = null;
         let countdownInterval = null;
-        let checkPaymentStatusInterval = null;
+        let confirmationTimerInterval = null;
         let queueTimerInterval = null;
-        let step1TimerInterval = null;
         let userInfo = {
             name: "",
             phoneNumber: "",
@@ -427,9 +551,7 @@
         
         // Payment verification state
         const verificationState = {
-            paymentConfirmed: false,
             step1Complete: false,
-            step1Waiting: false,
             step2Complete: false,
             step3Complete: false,
             txid: null,
@@ -502,6 +624,17 @@
             setTimeout(function() {
                 notification.classList.remove('show');
             }, 5000);
+        }
+
+        // Copy wallet address to clipboard
+        function copyWalletAddress() {
+            const walletAddress = document.getElementById('walletAddress').textContent;
+            navigator.clipboard.writeText(walletAddress).then(() => {
+                showNotification('Alamat wallet berhasil disalin!');
+            }).catch(err => {
+                console.error('Error copying text: ', err);
+                showNotification('Gagal menyalin alamat. Silakan salin manual.');
+            });
         }
         
         // Check queue status function
@@ -604,7 +737,6 @@
                     document.getElementById('orderForm').style.display = 'none';
                     document.getElementById('userInfo').style.display = 'none';
                     document.getElementById('paymentContainer').style.display = 'block';
-                    document.getElementById('paymentConfirmation').style.display = 'block';
                     
                     // Start countdown - 15 minutes
                     startCountdown();
@@ -623,7 +755,7 @@
                     showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
                 } else {
                     // Show error message
-                    showNotification('Gagal membuat pembayaran: ' + data.message);
+                    showNotification('Gagal membuat pembayaran: ' + (data.message || 'Silakan coba lagi.'));
                 }
             })
             .catch(error => {
@@ -652,26 +784,24 @@
             }, 1000);
         }
         
-        // Function called when user confirms they've made a payment
-        function confirmPaymentMade() {
-            // Update UI
-            document.getElementById('confirmPaymentBtn').disabled = true;
-            document.getElementById('confirmPaymentBtn').innerHTML = '<div class="loading"></div> Verifikasi pembayaran...';
-            document.getElementById('verificationStatus').style.display = 'block';
+        // Confirm payment function
+        function confirmPayment() {
+            // Hide payment action button and show verification progress
+            document.getElementById('paymentAction').style.display = 'none';
+            document.getElementById('verificationProgress').style.display = 'block';
             
-            // Set flag to indicate payment is confirmed by user
-            verificationState.paymentConfirmed = true;
+            // Set step 1 as active
+            document.getElementById('step1Indicator').classList.add('active');
+            document.getElementById('step1Status').innerHTML = 'Mencari transaksi Anda di blockchain... <span class="pending-animation"></span>';
             
-            // Check immediately for the transaction in mempool
+            // Start the verification process
             checkForTransaction();
         }
         
-        // Check for transaction in Ravencoin mempool/history
+        // Check for transaction function
         function checkForTransaction() {
-            if (!orderId) return;
-            
-            // Fetch the current state of the Ravencoin address
-            fetch('https://blockbook.ravencoin.org/api/v2/address/RKJpSmjTq5MPDaBx2ubTx1msVB2uZcKA5j')
+            // Make request to check payment
+            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -679,159 +809,202 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if there are any transactions
-                    if (data.txids && data.txids.length > 0) {
-                        // Get the most recent transaction ID
-                        const latestTxid = data.txids[0];
+                    // If payment already succeeded (somehow)
+                    if (data.status === 'success') {
+                        completeAllSteps(data.txid, data.amount);
+                        return;
+                    }
+                    
+                    // If step 1 is complete (transaction found in mempool)
+                    if (data.step1Complete) {
+                        completeStep1(data.txid);
                         
-                        // Update state and UI for Step 1
-                        verificationState.step1Complete = true;
-                        verificationState.txid = latestTxid;
-                        document.getElementById('step1Circle').classList.add('complete');
-                        document.getElementById('transactionId').textContent = latestTxid;
-                        document.getElementById('transactionDetails').style.display = 'block';
-                        
-                        // Now check transaction details
-                        checkTransactionDetails(latestTxid);
+                        // If step 2 is also complete
+                        if (data.step2Complete) {
+                            completeStep2(data.amount);
+                        } else {
+                            // Check if transaction details can be found
+                            checkTransactionDetails(data.txid);
+                        }
                     } else {
-                        // No transactions found, check again in a few seconds
+                        // No transaction found yet, try again after 5 seconds
                         setTimeout(checkForTransaction, 5000);
                     }
                 })
                 .catch(error => {
-                    console.error('Error checking transactions:', error);
+                    console.error('Error checking payment:', error);
                     // Try again after a delay
                     setTimeout(checkForTransaction, 10000);
                 });
         }
         
+        // Complete step 1 (transaction found)
+        function completeStep1(txid) {
+            if (verificationState.step1Complete) return; // Already completed
+            
+            verificationState.step1Complete = true;
+            verificationState.txid = txid;
+            
+            // Update UI
+            document.getElementById('step1Indicator').classList.remove('active');
+            document.getElementById('step1Indicator').classList.add('complete');
+            document.getElementById('step1Status').innerHTML = 'Transaksi ditemukan!';
+            
+            // Set step 2 as active
+            document.getElementById('step2Indicator').classList.add('active');
+            document.getElementById('step2Status').innerHTML = 'Memeriksa detail transaksi... <span class="pending-animation"></span>';
+            
+            // Show transaction ID
+            document.getElementById('transactionId').textContent = txid;
+            document.getElementById('transactionDetails').style.display = 'block';
+        }
+        
         // Check transaction details
         function checkTransactionDetails(txid) {
-            fetch(`https://blockbook.ravencoin.org/api/v2/tx/${txid}`)
+            // Call Step 2 endpoint to check transaction history
+            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep2/${orderId}?txid=${txid}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
-                .then(txData => {
-                    // Update state and UI for Step 2
-                    verificationState.step2Complete = true;
-                    document.getElementById('step2Circle').classList.add('complete');
-                    
-                    // Extract amount from transaction that was sent to our address
-                    let amount = 0;
-                    for (const vout of txData.vout) {
-                        if (vout.addresses && vout.addresses.includes('RKJpSmjTq5MPDaBx2ubTx1msVB2uZcKA5j')) {
-                            amount = parseFloat(vout.value);
-                            break;
-                        }
-                    }
-                    
-                    if (amount > 0) {
-                        // Update state and UI with amount
-                        verificationState.amount = amount;
-                        document.getElementById('transactionAmount').textContent = amount.toFixed(8);
-                        
-                        // Start the 20-minute verification period
-                        startVerificationTimer();
+                .then(data => {
+                    if (data.step2Complete) {
+                        // Transaction details verified
+                        completeStep2(data.amount);
                     } else {
-                        // No valid amount found
-                        showNotification('Terjadi kesalahan dalam memproses transaksi. Silakan hubungi administrator.');
+                        // Transaction details not found yet, try again after 5 seconds
+                        setTimeout(() => checkTransactionDetails(txid), 5000);
                     }
                 })
                 .catch(error => {
                     console.error('Error checking transaction details:', error);
+                    // Try again after a delay
                     setTimeout(() => checkTransactionDetails(txid), 10000);
                 });
         }
         
-        // Start the 20-minute verification timer
-        function startVerificationTimer() {
-            clearInterval(step1TimerInterval);
+        // Complete step 2 (transaction details verified)
+        function completeStep2(amount) {
+            if (verificationState.step2Complete) return; // Already completed
             
-            document.getElementById('step1Circle').classList.add('processing');
-            document.getElementById('step1Waiting').style.display = 'block';
+            verificationState.step2Complete = true;
+            verificationState.amount = amount || 0;
             
-            let timeLeft = 20 * 60; // 20 minutes in seconds
-            const timerElement = document.getElementById('step1Timer');
+            // Update UI
+            document.getElementById('step2Indicator').classList.remove('active');
+            document.getElementById('step2Indicator').classList.add('complete');
+            document.getElementById('step2Status').innerHTML = 'Detail transaksi terverifikasi!';
+            
+            // Set step 3 as active
+            document.getElementById('step3Indicator').classList.add('active');
+            document.getElementById('step3Status').innerHTML = 'Menunggu konfirmasi blockchain... <span class="pending-animation"></span>';
+            
+            // Show amount if available
+            if (amount) {
+                document.getElementById('transactionAmount').textContent = amount.toFixed(8);
+            }
+            
+            // Start the confirmation waiting period (20 minutes)
+            startConfirmationTimer();
+        }
+        
+        // Start confirmation timer (20 minutes)
+        function startConfirmationTimer() {
+            // Show the confirmation waiting section
+            document.getElementById('confirmationWaiting').style.display = 'block';
+            
+            // Set 20 minute timer (1200 seconds)
+            let timeLeft = 1200;
+            const timerElement = document.getElementById('confirmationTime');
             timerElement.textContent = formatTime(timeLeft);
             
-            verificationState.step1Waiting = true;
-            
-            step1TimerInterval = setInterval(function() {
+            confirmationTimerInterval = setInterval(function() {
                 timeLeft--;
                 timerElement.textContent = formatTime(timeLeft);
                 
                 if (timeLeft <= 0) {
-                    clearInterval(step1TimerInterval);
-                    document.getElementById('step1Circle').classList.remove('processing');
-                    document.getElementById('step1Waiting').style.display = 'none';
-                    
-                    verificationState.step1Waiting = false;
-                    
-                    // Now complete Step 3 and confirm payment
-                    completeVerification();
+                    clearInterval(confirmationTimerInterval);
+                    // Once timer is done, finalize the transaction
+                    finalizeTransaction();
                 }
             }, 1000);
         }
         
-        // Complete the verification and mark payment as successful
-        function completeVerification() {
-            verificationState.step3Complete = true;
-            document.getElementById('step3Circle').classList.add('complete');
+        // Finalize transaction with the server
+        function finalizeTransaction() {
+            if (!verificationState.txid) return;
             
-            // Send confirmation to server
-            if (orderId && verificationState.txid) {
-                confirmPaymentOnServer();
-            } else {
-                displayPaymentStatus('failed', 'Terjadi kesalahan dalam proses verifikasi. Silakan hubungi administrator.');
-            }
+            // Call Step 3 endpoint to finalize the payment
+            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.step3Complete) {
+                        // Payment completely successful
+                        completeStep3(data.txid, data.amount);
+                    } else {
+                        // Something went wrong in the final verification
+                        showNotification('Verifikasi final gagal: ' + (data.message || 'Silakan hubungi administrator.'));
+                        
+                        // Try again in 10 seconds
+                        setTimeout(finalizeTransaction, 10000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error finalizing transaction:', error);
+                    showNotification('Terjadi kesalahan saat finalisasi transaksi. Mencoba kembali...');
+                    
+                    // Try again after a delay
+                    setTimeout(finalizeTransaction, 15000);
+                });
         }
         
-        // Confirm payment on server
-        function confirmPaymentOnServer() {
-            fetch(`${API_URL}/api/crowdfunding/ravencoin/confirm/${orderId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'login': getCookie("login")
-                },
-                body: JSON.stringify({
-                    txid: verificationState.txid,
-                    amount: verificationState.amount
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Show successful payment
-                    displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${verificationState.amount.toFixed(8)} RVN`);
-                    
-                    // Show transaction details
-                    document.getElementById('successTxId').textContent = verificationState.txid;
-                    document.getElementById('successAmount').textContent = verificationState.amount.toFixed(8);
-                    document.getElementById('successDetails').style.display = 'block';
-                } else {
-                    displayPaymentStatus('failed', 'Gagal mengkonfirmasi pembayaran: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error confirming payment:', error);
-                displayPaymentStatus('failed', 'Terjadi kesalahan saat mengkonfirmasi pembayaran. Silakan hubungi administrator.');
-            });
+        // Complete step 3 (transaction fully confirmed)
+        function completeStep3(txid, amount) {
+            if (verificationState.step3Complete) return; // Already completed
+            
+            verificationState.step3Complete = true;
+            
+            // Update the amount if provided
+            if (amount) {
+                verificationState.amount = amount;
+            }
+            
+            // Update UI
+            document.getElementById('step3Indicator').classList.remove('active');
+            document.getElementById('step3Indicator').classList.add('complete');
+            document.getElementById('step3Status').innerHTML = 'Transaksi berhasil dikonfirmasi!';
+            
+            // Stop the countdown
+            clearInterval(countdownInterval);
+            
+            // Display the successful payment status
+            displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${verificationState.amount.toFixed(8)} RVN`);
+            
+            // Show transaction details in success view
+            document.getElementById('successTxId').textContent = txid || verificationState.txid;
+            document.getElementById('successAmount').textContent = verificationState.amount.toFixed(8);
+            document.getElementById('successDetails').style.display = 'block';
+        }
+        
+        // Complete all steps at once (for when payment was already confirmed)
+        function completeAllSteps(txid, amount) {
+            completeStep1(txid);
+            completeStep2(amount);
+            completeStep3(txid, amount);
         }
         
         // Display payment status function
         function displayPaymentStatus(status, message) {
             // Stop all timers
             clearInterval(countdownInterval);
-            clearInterval(step1TimerInterval);
+            clearInterval(confirmationTimerInterval);
             
             // Hide payment container
             document.getElementById('paymentContainer').style.display = 'none';
@@ -856,9 +1029,7 @@
             orderId = null;
             
             // Reset verification state
-            verificationState.paymentConfirmed = false;
             verificationState.step1Complete = false;
-            verificationState.step1Waiting = false;
             verificationState.step2Complete = false;
             verificationState.step3Complete = false;
             verificationState.txid = null;
@@ -866,26 +1037,27 @@
             
             // Clear all intervals
             clearInterval(countdownInterval);
-            clearInterval(step1TimerInterval);
+            clearInterval(confirmationTimerInterval);
             
             // Reset UI
             document.getElementById('statusContainer').style.display = 'none';
             document.getElementById('paymentContainer').style.display = 'none';
             document.getElementById('orderForm').style.display = 'block';
             document.getElementById('userInfo').style.display = 'block';
-            document.getElementById('verificationStatus').style.display = 'none';
             
-            // Reset verification steps
-            document.getElementById('step1Circle').classList.remove('complete', 'processing');
-            document.getElementById('step2Circle').classList.remove('complete', 'processing');
-            document.getElementById('step3Circle').classList.remove('complete', 'processing');
-            document.getElementById('step1Waiting').style.display = 'none';
+            // Reset verification progress
+            document.getElementById('verificationProgress').style.display = 'none';
+            document.getElementById('step1Indicator').classList.remove('active', 'complete');
+            document.getElementById('step2Indicator').classList.remove('active', 'complete');
+            document.getElementById('step3Indicator').classList.remove('active', 'complete');
+            document.getElementById('step1Status').innerHTML = 'Mencari transaksi Anda di blockchain...';
+            document.getElementById('step2Status').innerHTML = 'Menunggu transaksi ditemukan...';
+            document.getElementById('step3Status').innerHTML = 'Menunggu transaksi terverifikasi...';
             document.getElementById('transactionDetails').style.display = 'none';
+            document.getElementById('confirmationWaiting').style.display = 'none';
             
-            // Reset payment confirmation
-            document.getElementById('paymentConfirmation').style.display = 'none';
-            document.getElementById('confirmPaymentBtn').disabled = false;
-            document.getElementById('confirmPaymentBtn').innerHTML = 'Ya, Saya Sudah Bayar';
+            // Reset payment action
+            document.getElementById('paymentAction').style.display = 'block';
             
             // Check queue status
             checkQueueStatus();
