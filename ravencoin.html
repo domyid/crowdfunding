@@ -387,266 +387,266 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        let orderId = null;
-        let countdownInterval = null;
-        let checkPaymentStatusInterval = null;
-        let queueTimerInterval = null;
-        let step1TimerInterval = null;
-        let step2TimerInterval = null;
-        let userInfo = {
-            name: "",
-            phoneNumber: "",
-            npm: ""
+  let orderId = null;
+let countdownInterval = null;
+let checkPaymentStatusInterval = null;
+let queueTimerInterval = null;
+let step1TimerInterval = null;
+let step2TimerInterval = null;
+let userInfo = {
+    name: "",
+    phoneNumber: "",
+    npm: ""
+};
+const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
+
+// Payment verification state
+const verificationState = {
+    step1Complete: false,
+    step1Waiting: false,
+    step2Complete: false,
+    step2Waiting: false,
+    step3Complete: false,
+    txid: null,
+    amount: 0
+};
+
+// Check queue status and get user info when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    getUserInfo();
+    checkQueueStatus();
+});
+
+// Get user info from token
+function getUserInfo() {
+    fetch(`${API_URL}/api/crowdfunding/userinfo`, {
+        method: 'GET',
+        headers: {
+            'login': getCookie("login")  // Use 'login' not 'Authorization'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Display user info
+        userInfo = {
+            name: data.name || "N/A",
+            phoneNumber: data.phoneNumber || "N/A",
+            npm: data.npm || "N/A"
         };
-        const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         
-        // Payment verification state
-        const verificationState = {
-            step1Complete: false,
-            step1Waiting: false,
-            step2Complete: false,
-            step2Waiting: false,
-            step3Complete: false,
-            txid: null,
-            amount: 0
-        };
-        
-        // Check queue status and get user info when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            getUserInfo();
-            checkQueueStatus();
+        // Update UI with user info
+        const userInfoElement = document.getElementById('userInfo');
+        userInfoElement.innerHTML = `
+            <p><strong>Nama:</strong> ${userInfo.name}</p>
+            <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+            <p><strong>NPM:</strong> ${userInfo.npm}</p>
+        `;
+    })
+    .catch(error => {
+        console.error('Error getting user info:', error);
+    });
+}
+
+// Helper function to get cookie
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return "";
+}
+
+// Format time from seconds to MM:SS
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Show notification function
+function showNotification(message) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.classList.add('show');
+    
+    setTimeout(function() {
+        notification.classList.remove('show');
+    }, 5000);
+}
+
+// Check queue status function
+function checkQueueStatus() {
+    fetch(`${API_URL}/api/crowdfunding/queueStatus`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.isProcessing) {
+                // If there's an active payment, show queue info and disable form
+                document.getElementById('queueInfo').style.display = 'block';
+                document.getElementById('queueMessage').style.display = 'block';
+                document.getElementById('submitBtn').disabled = true;
+                
+                // Start queue countdown
+                if (data.expiryTime) {
+                    startQueueTimer(data.expiryTime);
+                }
+                
+                // Check again after 5 seconds
+                setTimeout(checkQueueStatus, 5000);
+            } else {
+                // If no active payment, enable form
+                document.getElementById('queueInfo').style.display = 'none';
+                document.getElementById('queueMessage').style.display = 'none';
+                document.getElementById('submitBtn').disabled = false;
+                clearInterval(queueTimerInterval);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking queue status:', error);
+            // Try again after a delay
+            setTimeout(checkQueueStatus, 10000);
         });
+}
+
+// Start queue timer
+function startQueueTimer(expiryTimeStr) {
+    clearInterval(queueTimerInterval);
+    
+    const expiryTime = new Date(expiryTimeStr);
+    const queueTimerElement = document.getElementById('queueTimer');
+    
+    queueTimerInterval = setInterval(function() {
+        const now = new Date();
+        const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
         
-        // Get user info from token
-        function getUserInfo() {
-            fetch(`${API_URL}/api/crowdfunding/userinfo`, {
-                method: 'GET',
-                headers: {
-                    'login': getCookie("login")  // Use 'login' not 'Authorization'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Display user info
-                userInfo = {
-                    name: data.name || "N/A",
-                    phoneNumber: data.phoneNumber || "N/A",
-                    npm: data.npm || "N/A"
-                };
-                
-                // Update UI with user info
-                const userInfoElement = document.getElementById('userInfo');
-                userInfoElement.innerHTML = `
-                    <p><strong>Nama:</strong> ${userInfo.name}</p>
-                    <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
-                    <p><strong>NPM:</strong> ${userInfo.npm}</p>
-                `;
-            })
-            .catch(error => {
-                console.error('Error getting user info:', error);
-            });
-        }
-        
-        // Helper function to get cookie
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return "";
-        }
-        
-        // Format time from seconds to MM:SS
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }
-        
-        // Show notification function
-        function showNotification(message) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.classList.add('show');
-            
-            setTimeout(function() {
-                notification.classList.remove('show');
-            }, 5000);
-        }
-        
-        // Check queue status function
-        function checkQueueStatus() {
-            fetch(`${API_URL}/api/crowdfunding/queueStatus`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.isProcessing) {
-                        // If there's an active payment, show queue info and disable form
-                        document.getElementById('queueInfo').style.display = 'block';
-                        document.getElementById('queueMessage').style.display = 'block';
-                        document.getElementById('submitBtn').disabled = true;
-                        
-                        // Start queue countdown
-                        if (data.expiryTime) {
-                            startQueueTimer(data.expiryTime);
-                        }
-                        
-                        // Check again after 5 seconds
-                        setTimeout(checkQueueStatus, 5000);
-                    } else {
-                        // If no active payment, enable form
-                        document.getElementById('queueInfo').style.display = 'none';
-                        document.getElementById('queueMessage').style.display = 'none';
-                        document.getElementById('submitBtn').disabled = false;
-                        clearInterval(queueTimerInterval);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking queue status:', error);
-                    // Try again after a delay
-                    setTimeout(checkQueueStatus, 10000);
-                });
-        }
-        
-        // Start queue timer
-        function startQueueTimer(expiryTimeStr) {
+        if (timeLeft <= 0) {
             clearInterval(queueTimerInterval);
-            
-            const expiryTime = new Date(expiryTimeStr);
-            const queueTimerElement = document.getElementById('queueTimer');
-            
-            queueTimerInterval = setInterval(function() {
-                const now = new Date();
-                const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
-                
-                if (timeLeft <= 0) {
-                    clearInterval(queueTimerInterval);
-                    checkQueueStatus(); // Check queue status again when timer expires
-                } else {
-                    queueTimerElement.textContent = formatTime(timeLeft);
-                }
-            }, 1000);
+            checkQueueStatus(); // Check queue status again when timer expires
+        } else {
+            queueTimerElement.textContent = formatTime(timeLeft);
         }
+    }, 1000);
+}
+
+// Create order function
+function createOrder() {
+    // Show loading state
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="loading"></div> Memproses...';
+    
+    // Send request to server
+    fetch(`${API_URL}/api/crowdfunding/ravencoin/createOrder`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'login': getCookie("login")  // Use 'login' not 'Authorization'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Reset loading state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Buat Pembayaran';
         
-        // Create order function
-        function createOrder() {
-            // Show loading state
-            const submitBtn = document.getElementById('submitBtn');
+        if (data.success) {
+            // Save order ID
+            orderId = data.orderId;
+            
+            // Update payment details
+            document.getElementById('orderId').textContent = data.orderId;
+            document.getElementById('customerName').textContent = userInfo.name;
+            document.getElementById('customerPhone').textContent = userInfo.phoneNumber;
+            document.getElementById('customerNPM').textContent = userInfo.npm;
+            document.getElementById('walletAddress').textContent = data.walletAddress;
+            
+            // Show payment container and hide order form
+            document.getElementById('orderForm').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('paymentContainer').style.display = 'block';
+            
+            // Start countdown - 15 minutes
+            startCountdown();
+            
+            // Start checking payment status
+            checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
+            
+        } else if (data.queueStatus) {
+            // If there's an active payment in queue
+            document.getElementById('queueMessage').style.display = 'block';
+            document.getElementById('queueInfo').style.display = 'block';
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="loading"></div> Memproses...';
             
-            // Send request to server
-            fetch(`${API_URL}/api/crowdfunding/ravencoin/createOrder`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'login': getCookie("login")  // Use 'login' not 'Authorization'
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Reset loading state
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Buat Pembayaran';
-                
-                if (data.success) {
-                    // Save order ID
-                    orderId = data.orderId;
-                    
-                    // Update payment details
-                    document.getElementById('orderId').textContent = data.orderId;
-                    document.getElementById('customerName').textContent = userInfo.name;
-                    document.getElementById('customerPhone').textContent = userInfo.phoneNumber;
-                    document.getElementById('customerNPM').textContent = userInfo.npm;
-                    document.getElementById('walletAddress').textContent = data.walletAddress;
-                    
-                    // Show payment container and hide order form
-                    document.getElementById('orderForm').style.display = 'none';
-                    document.getElementById('userInfo').style.display = 'none';
-                    document.getElementById('paymentContainer').style.display = 'block';
-                    
-                    // Start countdown - 15 minutes
-                    startCountdown();
-                    
-                    // Start checking payment status
-                    checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
-                    
-                } else if (data.queueStatus) {
-                    // If there's an active payment in queue
-                    document.getElementById('queueMessage').style.display = 'block';
-                    document.getElementById('queueInfo').style.display = 'block';
-                    submitBtn.disabled = true;
-                    
-                    if (data.expiryTime) {
-                        startQueueTimer(data.expiryTime);
-                    }
-                    
-                    setTimeout(checkQueueStatus, 5000);
-                    showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
-                } else {
-                    // Show error message
-                    showNotification('Gagal membuat pembayaran: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error creating order:', error);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Buat Pembayaran';
-                showNotification('Terjadi kesalahan. Silakan coba lagi.');
-            });
-        }
-        
-        // Start countdown function - 15 minutes (900 seconds)
-        function startCountdown() {
-            let timeLeft = 900; // 15 minutes
-            const countdownElement = document.getElementById('countdown');
-            countdownElement.textContent = timeLeft;
+            if (data.expiryTime) {
+                startQueueTimer(data.expiryTime);
+            }
             
-            countdownInterval = setInterval(function() {
-                timeLeft--;
-                countdownElement.textContent = timeLeft;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    clearInterval(checkPaymentStatusInterval);
-                    // Show expired payment message
-                    displayPaymentStatus('failed', 'Pembayaran kedaluwarsa. Silakan coba lagi.');
-                }
-            }, 1000);
+            setTimeout(checkQueueStatus, 5000);
+            showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
+        } else {
+            // Show error message
+            showNotification('Gagal membuat pembayaran: ' + data.message);
         }
+    })
+    .catch(error => {
+        console.error('Error creating order:', error);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Buat Pembayaran';
+        showNotification('Terjadi kesalahan. Silakan coba lagi.');
+    });
+}
+
+// Start countdown function - 15 minutes (900 seconds)
+function startCountdown() {
+    let timeLeft = 900; // 15 minutes
+    const countdownElement = document.getElementById('countdown');
+    countdownElement.textContent = timeLeft;
+    
+    countdownInterval = setInterval(function() {
+        timeLeft--;
+        countdownElement.textContent = timeLeft;
         
-      // Check payment status function
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            clearInterval(checkPaymentStatusInterval);
+            // Show expired payment message
+            displayPaymentStatus('failed', 'Pembayaran kedaluwarsa. Silakan coba lagi.');
+        }
+    }, 1000);
+}
+
+// Check payment status function
 function checkPaymentStatus() {
     if (!orderId) return;
     
-    // If we're waiting between steps, don't check with the server
+    // Jika kita sedang menunggu di antara langkah, jangan lakukan pemeriksaan server
     if (verificationState.step1Waiting || verificationState.step2Waiting) {
         return;
     }
     
-    // If Step 1 is complete and we have txid, check Step 2 after waiting period
-    if (verificationState.step1Complete && verificationState.txid && !verificationState.step2Complete) {
+    // Jika Step 1 selesai dan kita memiliki txid, periksa Step 2 setelah periode tunggu
+    if (verificationState.step1Complete && verificationState.txid && !verificationState.step2Complete && !verificationState.step1Waiting) {
         clearInterval(checkPaymentStatusInterval);
         startStep1Timer();
         return;
     }
     
-    // If Step 2 is complete, check Step 3 after waiting period
-    if (verificationState.step2Complete && !verificationState.step3Complete) {
+    // Jika Step 2 selesai, periksa Step 3 setelah periode tunggu
+    if (verificationState.step2Complete && !verificationState.step3Complete && !verificationState.step2Waiting) {
         clearInterval(checkPaymentStatusInterval);
         startStep2Timer();
         return;
@@ -668,7 +668,7 @@ function checkPaymentStatus() {
                 verificationState.step1Complete = true;
                 document.getElementById('step1Circle').classList.add('complete');
                 
-                // Save txid if available
+                // Save txid and amount if available
                 if (data.txid) {
                     verificationState.txid = data.txid;
                     document.getElementById('transactionId').textContent = data.txid;
@@ -676,10 +676,11 @@ function checkPaymentStatus() {
                     
                     // If amount is provided, show it
                     if (data.amount) {
+                        verificationState.amount = data.amount;
                         document.getElementById('transactionAmount').textContent = data.amount.toFixed(8);
                     }
                     
-                    // Start the 7-minute wait before proceeding to step 2
+                    // Start the waiting period before proceeding to step 2
                     startStep1Timer();
                     clearInterval(checkPaymentStatusInterval);
                 }
@@ -710,13 +711,13 @@ function checkPaymentStatus() {
         });
 }
 
-// Function to check Step 2 status (called after 7-minute wait)
+// Function to check Step 2 status (called after waiting period)
 function checkStep2() {
     if (!orderId || !verificationState.txid) return;
     
     console.log("Checking Step 2 for txid:", verificationState.txid);
     
-    fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep2/${orderId}?txid=${verificationState.txid}`)
+    fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep2/${orderId}?txid=${verificationState.txid}&amount=${verificationState.amount}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -730,7 +731,7 @@ function checkStep2() {
                 verificationState.step2Complete = true;
                 document.getElementById('step2Circle').classList.add('complete');
                 
-                // Start the 1-minute wait before proceeding to step 3
+                // Start the waiting period before proceeding to step 3
                 startStep2Timer();
             } else {
                 // If Step 2 not complete, try again in a few seconds
@@ -744,13 +745,13 @@ function checkStep2() {
         });
 }
 
-// Function to check Step 3 status (called after 1-minute wait)
+// Function to check Step 3 status (called after waiting period)
 function checkStep3() {
     if (!orderId || !verificationState.txid) return;
     
     console.log("Checking Step 3 for txid:", verificationState.txid);
     
-    fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
+    fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep3/${orderId}?txid=${verificationState.txid}&amount=${verificationState.amount}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -760,20 +761,26 @@ function checkStep3() {
         .then(data => {
             console.log("Step 3 response:", data);
             
+            // Tampilkan jumlah konfirmasi jika ada
+            if (data.confirmations) {
+                document.getElementById('confirmationCount').textContent = data.confirmations;
+                document.getElementById('confirmations').style.display = 'block';
+            }
+            
             if (data.step3Complete) {
                 verificationState.step3Complete = true;
                 document.getElementById('step3Circle').classList.add('complete');
                 
                 // Now we have the verified amount from Step 3
-                verificationState.amount = data.amount;
-                document.getElementById('transactionAmount').textContent = data.amount.toFixed(8);
+                verificationState.amount = data.amount || verificationState.amount;
+                document.getElementById('transactionAmount').textContent = verificationState.amount.toFixed(8);
                 
                 // Show successful payment
-                displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount.toFixed(8)} RVN`);
+                displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${verificationState.amount.toFixed(8)} RVN`);
                 
                 // Show transaction details
                 document.getElementById('successTxId').textContent = data.txid;
-                document.getElementById('successAmount').textContent = data.amount.toFixed(8);
+                document.getElementById('successAmount').textContent = verificationState.amount.toFixed(8);
                 document.getElementById('successDetails').style.display = 'block';
             } else {
                 // If Step 3 not complete, try again in a few seconds
@@ -786,129 +793,130 @@ function checkStep3() {
             setTimeout(checkStep3, 10000);
         });
 }
+
+// Start waiting timer for step 1 (2 minutes)
+function startStep1Timer() {
+    clearInterval(step1TimerInterval);
+    
+    document.getElementById('step1Circle').classList.add('processing');
+    document.getElementById('step1Waiting').style.display = 'block';
+    
+    let timeLeft = 2 * 60; // 2 minutes in seconds
+    const timerElement = document.getElementById('step1Timer');
+    timerElement.textContent = formatTime(timeLeft);
+    
+    verificationState.step1Waiting = true;
+    
+    step1TimerInterval = setInterval(function() {
+        timeLeft--;
+        timerElement.textContent = formatTime(timeLeft);
         
-        // Start waiting timer for step 1 (7 minutes)
-        function startStep1Timer() {
+        if (timeLeft <= 0) {
             clearInterval(step1TimerInterval);
-            
-            document.getElementById('step1Circle').classList.add('processing');
-            document.getElementById('step1Waiting').style.display = 'block';
-            
-            let timeLeft = 7 * 60; // 7 minutes in seconds
-            const timerElement = document.getElementById('step1Timer');
-            timerElement.textContent = formatTime(timeLeft);
-            
-            verificationState.step1Waiting = true;
-            
-            step1TimerInterval = setInterval(function() {
-                timeLeft--;
-                timerElement.textContent = formatTime(timeLeft);
-                
-                if (timeLeft <= 0) {
-                    clearInterval(step1TimerInterval);
-                    document.getElementById('step1Circle').classList.remove('processing');
-                    document.getElementById('step1Waiting').style.display = 'none';
-                    
-                    verificationState.step1Waiting = false;
-                    
-                    // Check step 2 directly now
-                    checkStep2();
-                }
-            }, 1000);
-        }
-        
-        // Start waiting timer for step 2 (1 minute)
-        function startStep2Timer() {
-            clearInterval(step2TimerInterval);
-            
-            document.getElementById('step2Circle').classList.add('processing');
-            document.getElementById('step2Waiting').style.display = 'block';
-            
-            let timeLeft = 1 * 60; // 1 minute in seconds
-            const timerElement = document.getElementById('step2Timer');
-            timerElement.textContent = formatTime(timeLeft);
-            
-            verificationState.step2Waiting = true;
-            
-            step2TimerInterval = setInterval(function() {
-                timeLeft--;
-                timerElement.textContent = formatTime(timeLeft);
-                
-                if (timeLeft <= 0) {
-                    clearInterval(step2TimerInterval);
-                    document.getElementById('step2Circle').classList.remove('processing');
-                    document.getElementById('step2Waiting').style.display = 'none';
-                    
-                    verificationState.step2Waiting = false;
-                    
-                    // Check step 3 directly now
-                    checkStep3();
-                }
-            }, 1000);
-        }
-        
-        // Display payment status function
-        function displayPaymentStatus(status, message) {
-            // Stop all timers
-            clearInterval(countdownInterval);
-            clearInterval(checkPaymentStatusInterval);
-            clearInterval(step1TimerInterval);
-            clearInterval(step2TimerInterval);
-            
-            // Hide payment container
-            document.getElementById('paymentContainer').style.display = 'none';
-            
-            // Update status message
-            const statusElement = document.getElementById('paymentStatus');
-            statusElement.textContent = message;
-            
-            if (status === 'success') {
-                statusElement.className = 'status-message success';
-            } else {
-                statusElement.className = 'status-message error';
-            }
-            
-            // Show status container
-            document.getElementById('statusContainer').style.display = 'block';
-        }
-        
-        // Reset form function
-        function resetForm() {
-            // Reset all state
-            orderId = null;
-            
-            // Reset verification state
-            verificationState.step1Complete = false;
-            verificationState.step1Waiting = false;
-            verificationState.step2Complete = false;
-            verificationState.step2Waiting = false;
-            verificationState.step3Complete = false;
-            verificationState.txid = null;
-            verificationState.amount = 0;
-            
-            // Clear all intervals
-            clearInterval(countdownInterval);
-            clearInterval(checkPaymentStatusInterval);
-            clearInterval(step1TimerInterval);
-            clearInterval(step2TimerInterval);
-            
-            // Reset UI
-            document.getElementById('statusContainer').style.display = 'none';
-            document.getElementById('paymentContainer').style.display = 'none';
-            document.getElementById('orderForm').style.display = 'block';
-            document.getElementById('userInfo').style.display = 'block';
-            
-            // Reset verification steps
-            document.getElementById('step1Circle').classList.remove('complete', 'processing');
-            document.getElementById('step2Circle').classList.remove('complete', 'processing');
-            document.getElementById('step3Circle').classList.remove('complete', 'processing');
+            document.getElementById('step1Circle').classList.remove('processing');
             document.getElementById('step1Waiting').style.display = 'none';
-            document.getElementById('step2Waiting').style.display = 'none';
-            document.getElementById('transactionDetails').style.display = 'none';
             
-            // Check queue status
-            checkQueueStatus();
+            verificationState.step1Waiting = false;
+            
+            // Check step 2 directly now
+            checkStep2();
         }
+    }, 1000);
+}
+
+// Start waiting timer for step 2 (30 seconds)
+function startStep2Timer() {
+    clearInterval(step2TimerInterval);
+    
+    document.getElementById('step2Circle').classList.add('processing');
+    document.getElementById('step2Waiting').style.display = 'block';
+    
+    let timeLeft = 30; // 30 seconds
+    const timerElement = document.getElementById('step2Timer');
+    timerElement.textContent = formatTime(timeLeft);
+    
+    verificationState.step2Waiting = true;
+    
+    step2TimerInterval = setInterval(function() {
+        timeLeft--;
+        timerElement.textContent = formatTime(timeLeft);
+        
+        if (timeLeft <= 0) {
+            clearInterval(step2TimerInterval);
+            document.getElementById('step2Circle').classList.remove('processing');
+            document.getElementById('step2Waiting').style.display = 'none';
+            
+            verificationState.step2Waiting = false;
+            
+            // Check step 3 directly now
+            checkStep3();
+        }
+    }, 1000);
+}
+
+// Display payment status function
+function displayPaymentStatus(status, message) {
+    // Stop all timers
+    clearInterval(countdownInterval);
+    clearInterval(checkPaymentStatusInterval);
+    clearInterval(step1TimerInterval);
+    clearInterval(step2TimerInterval);
+    
+    // Hide payment container
+    document.getElementById('paymentContainer').style.display = 'none';
+    
+    // Update status message
+    const statusElement = document.getElementById('paymentStatus');
+    statusElement.textContent = message;
+    
+    if (status === 'success') {
+        statusElement.className = 'status-message success';
+    } else {
+        statusElement.className = 'status-message error';
+    }
+    
+    // Show status container
+    document.getElementById('statusContainer').style.display = 'block';
+}
+
+// Reset form function
+function resetForm() {
+    // Reset all state
+    orderId = null;
+    
+    // Reset verification state
+    verificationState.step1Complete = false;
+    verificationState.step1Waiting = false;
+    verificationState.step2Complete = false;
+    verificationState.step2Waiting = false;
+    verificationState.step3Complete = false;
+    verificationState.txid = null;
+    verificationState.amount = 0;
+    
+    // Clear all intervals
+    clearInterval(countdownInterval);
+    clearInterval(checkPaymentStatusInterval);
+    clearInterval(step1TimerInterval);
+    clearInterval(step2TimerInterval);
+    
+    // Reset UI
+    document.getElementById('statusContainer').style.display = 'none';
+    document.getElementById('paymentContainer').style.display = 'none';
+    document.getElementById('orderForm').style.display = 'block';
+    document.getElementById('userInfo').style.display = 'block';
+    
+    // Reset verification steps
+    document.getElementById('step1Circle').classList.remove('complete', 'processing');
+    document.getElementById('step2Circle').classList.remove('complete', 'processing');
+    document.getElementById('step3Circle').classList.remove('complete', 'processing');
+    document.getElementById('step1Waiting').style.display = 'none';
+    document.getElementById('step2Waiting').style.display = 'none';
+    document.getElementById('transactionDetails').style.display = 'none';
+    document.getElementById('confirmations').style.display = 'none';
+    
+    // Check queue status
+    checkQueueStatus();
+}
     </script>
     <script type="module">
         import { getCookie } from "https://cdn.jsdelivr.net/gh/jscroot/cookie@0.0.1/croot.js";
