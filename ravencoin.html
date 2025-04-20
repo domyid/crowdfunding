@@ -327,7 +327,7 @@
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
             
             <div class="timer">
-                <span id="countdown">900</span> detik
+                <span id="countdown">1200</span> detik
             </div>
             
             <img id="ravencoinQR" class="ravencoin-image" src="ravencoin.png" alt="Ravencoin QR Code">
@@ -611,9 +611,9 @@
             });
         }
         
-        // Start countdown function - 15 minutes (900 seconds)
+        // Start countdown function - 15 minutes (1200 seconds)
         function startCountdown() {
-            let timeLeft = 900; // 15 minutes
+            let timeLeft = 1200; // 15 minutes
             const countdownElement = document.getElementById('countdown');
             countdownElement.textContent = timeLeft;
             
