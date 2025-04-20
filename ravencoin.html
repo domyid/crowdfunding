@@ -343,6 +343,10 @@
                 <div class="step">
                     <div id="step1Circle" class="step-circle"></div>
                     <div class="step-text">Step 1: Cek transaksi dalam mempool</div>
+                    <!-- Tambahkan ini di bawah teks Step 1 -->
+<div id="step1Message" class="step-message" style="display: none; font-size: 12px; margin-left: 30px; color: #384186;">
+    Transaksi terdeteksi! Menunggu verifikasi...
+</div>
                 </div>
                 <div id="step1Waiting" class="step-waiting">Menunggu 7 menit sebelum lanjut ke step berikutnya... (<span id="step1Timer">07:00</span>)</div>
                 
@@ -630,85 +634,81 @@
             }, 1000);
         }
         
-        // Check payment status function
-        function checkPaymentStatus() {
-            if (!orderId) return;
-            
-            // If we're waiting between steps, don't check with the server
-            if (verificationState.step1Waiting || verificationState.step2Waiting) {
-                return;
+       // Check payment status function
+function checkPaymentStatus() {
+    if (!orderId) return;
+    
+    // If we're waiting between steps, don't check with the server
+    if (verificationState.step1Waiting || verificationState.step2Waiting) {
+        return;
+    }
+    
+    // If Step 1 is complete and we have txid, check Step 2 after waiting period
+    if (verificationState.step1Complete && verificationState.txid && !verificationState.step2Complete) {
+        clearInterval(checkPaymentStatusInterval);
+        startStep1Timer();
+        return;
+    }
+    
+    // If Step 2 is complete, check Step 3 after waiting period
+    if (verificationState.step2Complete && !verificationState.step3Complete) {
+        clearInterval(checkPaymentStatusInterval);
+        startStep2Timer();
+        return;
+    }
+    
+    // Normal Step 1 check
+    fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            
-            // If Step 1 is complete and we have txid, check Step 2 after waiting period
-            if (verificationState.step1Complete && verificationState.txid && !verificationState.step2Complete) {
-                clearInterval(checkPaymentStatusInterval);
+            return response.json();
+        })
+        .then(data => {
+            // Selalu centang Step 1 jika ada txid yang dikembalikan
+            if (data.txid && !verificationState.step1Complete) {
+                verificationState.step1Complete = true;
+                document.getElementById('step1Circle').classList.add('complete');
+                
+                verificationState.txid = data.txid;
+                document.getElementById('transactionId').textContent = data.txid;
+                document.getElementById('transactionDetails').style.display = 'block';
+                
+                // Save previousTxids if available
+                if (data.previousTxids) {
+                    verificationState.previousTxids = data.previousTxids;
+                }
+                
+                // Start the 7-minute wait before proceeding to step 2
                 startStep1Timer();
-                return;
-            }
-            
-            // If Step 2 is complete, check Step 3 after waiting period
-            if (verificationState.step2Complete && !verificationState.step3Complete) {
                 clearInterval(checkPaymentStatusInterval);
-                startStep2Timer();
-                return;
             }
             
-            // Normal Step 1 check
-            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Check and handle step 1 completion
-                    if (data.step1Complete && !verificationState.step1Complete) {
-                        verificationState.step1Complete = true;
-                        document.getElementById('step1Circle').classList.add('complete');
-                        
-                        // Save txid if available
-                        if (data.txid) {
-                            verificationState.txid = data.txid;
-                            document.getElementById('transactionId').textContent = data.txid;
-                            document.getElementById('transactionDetails').style.display = 'block';
-                            
-                            // Save previousTxids if available
-                            if (data.previousTxids) {
-                                verificationState.previousTxids = data.previousTxids;
-                            }
-                            
-                            // Start the 7-minute wait before proceeding to step 2
-                            startStep1Timer();
-                            clearInterval(checkPaymentStatusInterval);
-                        }
-                    }
+            // Handle payment status
+            if (data.success) {
+                if (data.status === 'success') {
+                    // Payment already successful (e.g., from previous session)
+                    clearInterval(checkPaymentStatusInterval);
+                    displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount ? data.amount.toFixed(8) : 0} RVN`);
                     
-                    // Handle payment status
-                    if (data.success) {
-                        if (data.status === 'success') {
-                            // Payment already successful (e.g., from previous session)
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount ? data.amount.toFixed(8) : 0} RVN`);
-                            
-                            // Show transaction details
-                            if (data.txid) {
-                                document.getElementById('successTxId').textContent = data.txid;
-                                document.getElementById('successAmount').textContent = data.amount ? data.amount.toFixed(8) : 0;
-                                document.getElementById('successDetails').style.display = 'block';
-                            }
-                        } else if (data.status === 'failed') {
-                            // Payment failed
-                            clearInterval(checkPaymentStatusInterval);
-                            displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
-                        }
+                    // Show transaction details
+                    if (data.txid) {
+                        document.getElementById('successTxId').textContent = data.txid;
+                        document.getElementById('successAmount').textContent = data.amount ? data.amount.toFixed(8) : 0;
+                        document.getElementById('successDetails').style.display = 'block';
                     }
-                })
-                .catch(error => {
-                    console.error('Error checking payment status:', error);
-                });
-        }
-        
+                } else if (data.status === 'failed') {
+                    // Payment failed
+                    clearInterval(checkPaymentStatusInterval);
+                    displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+        });
+}
         // Function to check Step 2 status (called after 7-minute wait)
         function checkStep2() {
             if (!orderId || !verificationState.txid) return;
@@ -790,35 +790,37 @@
                 });
         }
         
-        // Start waiting timer for step 1 (7 minutes)
-        function startStep1Timer() {
+      // Start waiting timer for step 1 (7 minutes)
+function startStep1Timer() {
+    clearInterval(step1TimerInterval);
+    
+    document.getElementById('step1Circle').classList.add('processing');
+    document.getElementById('step1Waiting').style.display = 'block';
+    document.getElementById('step1Message').style.display = 'block'; // Tampilkan pesan transaksi terdeteksi
+    
+    let timeLeft = 7 * 60; // 7 minutes in seconds
+    const timerElement = document.getElementById('step1Timer');
+    timerElement.textContent = formatTime(timeLeft);
+    
+    verificationState.step1Waiting = true;
+    
+    step1TimerInterval = setInterval(function() {
+        timeLeft--;
+        timerElement.textContent = formatTime(timeLeft);
+        
+        if (timeLeft <= 0) {
             clearInterval(step1TimerInterval);
+            document.getElementById('step1Circle').classList.remove('processing');
+            document.getElementById('step1Waiting').style.display = 'none';
+            document.getElementById('step1Message').style.display = 'none'; // Sembunyikan pesan
             
-            document.getElementById('step1Circle').classList.add('processing');
-            document.getElementById('step1Waiting').style.display = 'block';
+            verificationState.step1Waiting = false;
             
-            let timeLeft = 7 * 60; // 7 minutes in seconds
-            const timerElement = document.getElementById('step1Timer');
-            timerElement.textContent = formatTime(timeLeft);
-            
-            verificationState.step1Waiting = true;
-            
-            step1TimerInterval = setInterval(function() {
-                timeLeft--;
-                timerElement.textContent = formatTime(timeLeft);
-                
-                if (timeLeft <= 0) {
-                    clearInterval(step1TimerInterval);
-                    document.getElementById('step1Circle').classList.remove('processing');
-                    document.getElementById('step1Waiting').style.display = 'none';
-                    
-                    verificationState.step1Waiting = false;
-                    
-                    // Check step 2 directly now
-                    checkStep2();
-                }
-            }, 1000);
+            // Check step 2 directly now
+            checkStep2();
         }
+    }, 1000);
+}
         
         // Start waiting timer for step 2 (1 minute)
         function startStep2Timer() {
@@ -875,44 +877,45 @@
             document.getElementById('statusContainer').style.display = 'block';
         }
         
-        // Reset form function
-        function resetForm() {
-            // Reset all state
-            orderId = null;
-            
-            // Reset verification state
-            verificationState.step1Complete = false;
-            verificationState.step1Waiting = false;
-            verificationState.step2Complete = false;
-            verificationState.step2Waiting = false;
-            verificationState.step3Complete = false;
-            verificationState.txid = null;
-            verificationState.amount = 0;
-            verificationState.previousTxids = null; // Reset the previousTxids too
-            
-            // Clear all intervals
-            clearInterval(countdownInterval);
-            clearInterval(checkPaymentStatusInterval);
-            clearInterval(step1TimerInterval);
-            clearInterval(step2TimerInterval);
-            
-            // Reset UI
-            document.getElementById('statusContainer').style.display = 'none';
-            document.getElementById('paymentContainer').style.display = 'none';
-            document.getElementById('orderForm').style.display = 'block';
-            document.getElementById('userInfo').style.display = 'block';
-            
-            // Reset verification steps
-            document.getElementById('step1Circle').classList.remove('complete', 'processing');
-            document.getElementById('step2Circle').classList.remove('complete', 'processing');
-            document.getElementById('step3Circle').classList.remove('complete', 'processing');
-            document.getElementById('step1Waiting').style.display = 'none';
-            document.getElementById('step2Waiting').style.display = 'none';
-            document.getElementById('transactionDetails').style.display = 'none';
-            
-            // Check queue status
-            checkQueueStatus();
-        }
+      // Reset form function
+function resetForm() {
+    // Reset all state
+    orderId = null;
+    
+    // Reset verification state
+    verificationState.step1Complete = false;
+    verificationState.step1Waiting = false;
+    verificationState.step2Complete = false;
+    verificationState.step2Waiting = false;
+    verificationState.step3Complete = false;
+    verificationState.txid = null;
+    verificationState.amount = 0;
+    verificationState.previousTxids = null; // Reset the previousTxids too
+    
+    // Clear all intervals
+    clearInterval(countdownInterval);
+    clearInterval(checkPaymentStatusInterval);
+    clearInterval(step1TimerInterval);
+    clearInterval(step2TimerInterval);
+    
+    // Reset UI
+    document.getElementById('statusContainer').style.display = 'none';
+    document.getElementById('paymentContainer').style.display = 'none';
+    document.getElementById('orderForm').style.display = 'block';
+    document.getElementById('userInfo').style.display = 'block';
+    
+    // Reset verification steps
+    document.getElementById('step1Circle').classList.remove('complete', 'processing');
+    document.getElementById('step2Circle').classList.remove('complete', 'processing');
+    document.getElementById('step3Circle').classList.remove('complete', 'processing');
+    document.getElementById('step1Waiting').style.display = 'none';
+    document.getElementById('step2Waiting').style.display = 'none';
+    document.getElementById('step1Message').style.display = 'none'; // Sembunyikan pesan tambahan
+    document.getElementById('transactionDetails').style.display = 'none';
+    
+    // Check queue status
+    checkQueueStatus();
+}
     </script>
     <script type="module">
         import { getCookie } from "https://cdn.jsdelivr.net/gh/jscroot/cookie@0.0.1/croot.js";
