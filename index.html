@@ -18,6 +18,33 @@
             --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         
+        /* Checkbox styles */
+        .checkbox-container {
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 500;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
         * {
             box-sizing: border-box;
             margin: 0;
@@ -197,6 +224,100 @@
             border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
         
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            position: relative;
+        }
+        
+        .modal-header {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .modal-header h2 {
+            color: var(--primary-color);
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .modal-content {
+            margin-bottom: 2rem;
+        }
+        
+        .modal-content h3 {
+            font-size: 1.25rem;
+            margin: 1.5rem 0 0.75rem 0;
+            color: var(--text-primary);
+        }
+        
+        .modal-content ul {
+            padding-left: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .modal-content li {
+            margin-bottom: 0.75rem;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .btn-agree {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-agree:hover {
+            background-color: #047857;
+        }
+        
+        .btn-disagree {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .btn-disagree:hover {
+            background-color: #dc2626;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -212,6 +333,20 @@
             
             .service-card {
                 padding: 1.5rem;
+            }
+            
+            .modal-container {
+                padding: 1.5rem;
+                width: 95%;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
             }
         }
     </style>
@@ -264,9 +399,50 @@
             &copy; 2025 Crowdfunding Payment Services. Hak Cipta Dilindungi.
         </footer>
     </div>
-</body>
+    
+    <!-- Modal Dialog for Terms and Conditions -->
+    <div id="consentModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Syarat dan Ketentuan Crowdfunding</h2>
+                <p>Mohon baca dengan teliti sebelum melanjutkan</p>
+            </div>
+            <div class="modal-content">
+                <h3>Iform Crowdfunding</h3>
+                <ol>
+                    <li>Partisipasi dalam crowdfunding ini bersifat sukarela tanpa unsur paksaan sama sekali.</li>
+                    <li>Dana yang terkumpul akan digunakan secara khusus untuk pembangunan infrastruktur pada proyek do.my.id dan bukupedia yang bermanfaat bagi komunitas.</li>
+                    <li>Pendana menyetujui bahwa dana yang telah disalurkan tidak dapat ditarik kembali sesuai dengan kesepakatan bersama pada nomor 1.</li>
+                </ol>
+                
+                <h3>Terms Crowdfunding</h3>
+                <ul>
+                    <li>Program crowdfunding ini bertujuan untuk mengumpulkan dana guna membangun infrastruktur pembelajaran digital yang akan digunakan untuk kepentingan edukasi. dengan berkontribusi minimal seminggu sekali menggunakan QRISS atau menggunakan Blockchain melalui link CrowdFunding.</li>
+                </ul>
+                
+                <h3>Syarat Pendanaan sesuai Terms and Condition:</h3>
+                <ol>
+                    <li>QRIS: Hanya dapat digunakan oleh pendana setelah mendapatkan dana dari client sesuai yang sudah di implementasikan di <a href="https://github.com/domyid/proyek" target="_blank">https://github.com/domyid/proyek</a>. Setiap usaha client harus terdaftar dan terverifikasi di Google Maps dengan status 'Business Profile' aktif.</li>
+                    <li>Blockchain (ini adalah pilihan selain menggunakan qris): dana berasal dari mining di infrastruktur klien atau tim pengembang. bisa menggunakan mbc dan rvn coin</li>
+                    <li>Persyaratan client Implementor Minimal 1 klien per proyek, tetapi disarankan lebih untuk optimalisasi hasil dan Klien harus aktif berkontribusi sesuai ketentuan.</li>
+                </ol>
+            </div>
+            <div class="checkbox-container">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="termsCheckbox">
+                    <span>Saya telah membaca dan memahami semua syarat dan ketentuan di atas</span>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button id="agreeBtn" class="btn btn-agree" disabled>Saya Setuju</button>
+                <button id="disagreeBtn" class="btn btn-disagree" disabled>Saya Tidak Setuju</button>
+            </div>
+        </div>
+    </div>
+
 <script type="module">
     import { getCookie } from "https://cdn.jsdelivr.net/gh/jscroot/cookie@0.0.1/croot.js";
+    
     async function verifyLogin() {
         let token = getCookie("login");
         if (!token) {
@@ -276,7 +452,46 @@
         }
         console.log("✅ Token ditemukan:", token);
     }
-    // Panggil fungsi saat halaman dimuat
-    document.addEventListener("DOMContentLoaded", verifyLogin);
+    
+    // Consent modal handling
+    document.addEventListener("DOMContentLoaded", function() {
+        // Check if user already consented
+        if (!localStorage.getItem('crowdfundingConsent')) {
+            document.getElementById('consentModal').classList.remove('hidden');
+        }
+        
+        // Verify login after consent is handled
+        verifyLogin();
+    });
+    
+    // Checkbox handler
+    document.getElementById('termsCheckbox').addEventListener('change', function() {
+        const agreeBtn = document.getElementById('agreeBtn');
+        const disagreeBtn = document.getElementById('disagreeBtn');
+        
+        if (this.checked) {
+            agreeBtn.disabled = false;
+            disagreeBtn.disabled = false;
+        } else {
+            agreeBtn.disabled = true;
+            disagreeBtn.disabled = true;
+        }
+    });
+    
+    // Agree button handler
+    document.getElementById('agreeBtn').addEventListener('click', function() {
+        if (!this.disabled) {
+            localStorage.setItem('crowdfundingConsent', 'true');
+            document.getElementById('consentModal').classList.add('hidden');
+        }
+    });
+    
+    // Disagree button handler
+    document.getElementById('disagreeBtn').addEventListener('click', function() {
+        if (!this.disabled) {
+            window.location.href = "https://www.google.com";
+        }
+    });
 </script>
+</body>
 </html>
