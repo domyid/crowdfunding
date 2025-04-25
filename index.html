@@ -3,157 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Microbit Payment Services</title>
+    <title>Crowdfunding Payment Services</title>
     
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #059669;
+            --accent-color: #f59e0b;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --bg-color: #f9fafb;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
-            color: #333;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
         
         .container {
-            max-width: 900px;
-            margin: 20px auto;
-            padding: 0 20px;
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 2rem;
         }
         
         header {
             text-align: center;
-            padding: 20px 0;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
+            padding: 2.5rem 1.5rem;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
         }
         
         h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
             margin: 0;
-            color: #333;
+            color: var(--primary-color);
+            letter-spacing: -0.5px;
         }
         
         .subheading {
-            color: #666;
-            margin-top: 10px;
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 500;
         }
         
         .services {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
         }
         
         .service-card {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            width: calc(50% - 30px);
-            min-width: 280px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             text-decoration: none;
             color: inherit;
             display: flex;
             flex-direction: column;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            height: 100%;
         }
         
         .service-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow-hover);
         }
         
         .service-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+            font-size: 3rem;
+            margin-bottom: 1.25rem;
             align-self: center;
+            background-color: rgba(0, 0, 0, 0.03);
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-top: 0.5rem;
         }
         
         .service-title {
-            font-size: 20px;
+            font-size: 1.5rem;
             font-weight: 600;
-            margin-bottom: 10px;
-            color: #333;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            text-align: center;
         }
         
         .service-description {
-            color: #666;
-            margin-bottom: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
             flex-grow: 1;
+            text-align: center;
+            font-size: 1rem;
         }
         
         .service-cta {
-            background-color: #4CAF50;
+            background-color: var(--secondary-color);
             color: white;
             border: none;
-            border-radius: 5px;
-            padding: 10px 15px;
-            font-size: 14px;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 1rem;
+            display: block;
+            text-decoration: none;
         }
         
         .service-cta:hover {
-            background-color: #3e8e41;
+            background-color: #047857; /* darker shade of green */
+            transform: translateY(-2px);
         }
         
         .tutorial-buttons {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
         }
         
         .tutorial-button {
-            background-color: #2196F3;
+            background-color: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 5px;
-            padding: 8px 15px;
-            font-size: 14px;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
             text-align: center;
             text-decoration: none;
+            display: block;
         }
         
         .tutorial-button:hover {
-            background-color: #0b7dda;
+            background-color: #1d4ed8; /* darker shade of blue */
+            transform: translateY(-2px);
         }
         
         .qris-service .service-icon {
-            color: #4CAF50;
+            color: var(--secondary-color);
+            background-color: rgba(5, 150, 105, 0.1);
         }
         
         .bitcoin-service .service-icon {
-            color: #f7931a;
+            color: var(--accent-color);
+            background-color: rgba(245, 158, 11, 0.1);
         }
         
         footer {
             text-align: center;
-            margin-top: 40px;
-            padding: 20px 0;
-            color: #666;
-            font-size: 14px;
+            margin-top: 4rem;
+            padding: 2rem 0;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
         
         @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            header {
+                padding: 2rem 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
             .service-card {
-                width: 100%;
+                padding: 1.5rem;
             }
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Microbit Payment Services</h1>
+            <h1>Crowdfunding Payment Services</h1>
             <p class="subheading">Layanan Pembayaran dan Eksplorasi Blockchain</p>
         </header>
         
@@ -168,32 +235,33 @@
             </a>
             
             <div class="service-card bitcoin-service">
-                <div class="service-icon">🔍</div>
+                <div class="service-icon">₿</div>
                 <h2 class="service-title">MicroBitcoin Payment</h2>
                 <p class="service-description">
-                    pembayaran Blockchain
+                    Gunakan cryptocurrency untuk melakukan pembayaran melalui jaringan blockchain yang aman dan terdesentralisasi.
                 </p>
-                <a href="microbitcoin.html" class="service-cta">Bayar Menggunakan Sistem Blockchain</a>
+                <a href="microbitcoin.html" class="service-cta">Bayar Dengan Blockchain</a>
                 <div class="tutorial-buttons">
-                    <a href="https://zarasabilaa.github.io/transaksiwonpay/" class="tutorial-button" target="_blank">Tutorial [link 1]</a>
-                    <a href="https://gas.renz.my.id/tutor-transfer-coin/" class="tutorial-button" target="_blank">Tutorial [link 2]</a>
+                    <a href="https://zarasabilaa.github.io/transaksiwonpay/" class="tutorial-button" target="_blank">Tutorial [1]</a>
+                    <a href="https://gas.renz.my.id/tutor-transfer-coin/" class="tutorial-button" target="_blank">Tutorial [2]</a>
                 </div>
             </div>
             
-            <a href="ravencoin.html" class="service-card bitcoin-service">
-                <div class="service-icon">🔍</div>
+            <div class="service-card bitcoin-service">
+                <div class="service-icon">🦅</div>
                 <h2 class="service-title">Ravencoin Payment</h2>
                 <p class="service-description">
-                    pembayaran Blockchain
+                    Nikmati kemudahan pembayaran dengan Ravencoin melalui sistem blockchain yang aman dan cepat.
                 </p>
-                <div class="service-cta">Bayar Menggunakan Sistem Blockchain</div>
-                <a href="https://zarasabilaa.github.io/transaksiTrustwallet/" class="tutorial-button" target="_blank">Tutorial</a>
-
-            </a>
+                <a href="ravencoin.html" class="service-cta">Bayar Dengan Ravencoin</a>
+                <div class="tutorial-buttons">
+                    <a href="https://zarasabilaa.github.io/transaksiTrustwallet/" class="tutorial-button" target="_blank">Tutorial</a>
+                </div>
+            </div>
         </div>
         
         <footer>
-            &copy; 2025 Microbit Payment Services. All rights reserved.
+            &copy; 2025 Crowdfunding Payment Services. Hak Cipta Dilindungi.
         </footer>
     </div>
 </body>
