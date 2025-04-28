@@ -1,12 +1,14 @@
 # iform crowdfunding
 
-1. Partisipasi dalam crowdfunding ini bersifat sukarela tanpa unsur paksaan sama sekali karena ini adalah salah satu pembelajaran. kalian bisa membaca terlebih dahulu dan pahami[https://insent.if.co.id](https://insent.if.co.id)
+1. Partisipasi dalam crowdfunding ini bersifat sukarela tanpa unsur paksaan sama sekali karena ini adalah salah satu pembelajaran. kalian bisa membaca terlebih dahulu dan pahami di  [https://insent.if.co.id](https://insent.if.co.id)
 2. Dana yang terkumpul akan digunakan secara khusus untuk pembangunan infrastruktur pada proyek do.my.id, bukupedia dan lainya yang bermanfaat bagi komunitas sesuai yang sudah di implementasikan di [https://insent.if.co.id](https://insent.if.co.id).
 3. Pendana menyetujui bahwa dana yang telah disalurkan tidak dapat ditarik kembali sesuai dengan kesepakatan bersama pada nomor 1.
 
 # terms crowdfunding
 
 * Program crowdfunding ini bertujuan untuk mengumpulkan dana guna membangun infrastruktur pembelajaran digital yang akan digunakan untuk kepentingan edukasi sesuai yang sudah di implementasikan di [https://insent.if.co.id](https://insent.if.co.id). dengan berkontribusi minimal seminggu sekali menggunakan QRIS (berapapun diterima karena ini sukarela) atau menggunakan Blockchain melalui link CrowdFunding.
+
+* Program ini melakukan mahasiswa proyek 1 untuk mendapatkan berapapun angka yang diterima dari client setiap minggunya . dan berapapun yang akan di berikan crowdfunding ini tergantung mahasiswanya sendiri tidak ada paksaan dari pihak manapun. 
 
 ## syarat pendanaan sesuai terms and condition:
 
