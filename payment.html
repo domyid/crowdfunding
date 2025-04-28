@@ -345,7 +345,7 @@
                 <p>Silakan scan kode QRIS di bawah ini untuk melakukan pembayaran</p>
                 
                 <div class="timer">
-                    <span id="countdown">300</span> detik
+                    <span id="countdown">3600</span> detik
                 </div>
                 
                 <img id="qrisImage" class="qris-image" src="" alt="QRIS Code">
@@ -681,7 +681,7 @@
         
         // Fungsi untuk memulai hitung mundur
         function startCountdown() {
-            let timeLeft = 300;
+            let timeLeft = 3600;
             getElement('countdown').textContent = timeLeft;
             
             countdownInterval = setInterval(function() {
