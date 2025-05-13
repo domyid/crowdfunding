@@ -274,6 +274,46 @@
         .user-info p {
             margin: 5px 0;
         }
+        
+        .user-wallet-section {
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .user-wallet {
+            font-family: monospace;
+            word-break: break-all;
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        
+        /* Debug log styles */
+        #debugLog {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none; /* Hidden by default */
+        }
+        
+        .debug-toggle {
+            font-size: 12px;
+            color: #6c757d;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 10px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -314,6 +354,13 @@
                 <p><strong>Nama:</strong> <span id="customerName"></span></p>
                 <p><strong>No. HP:</strong> <span id="customerPhone"></span></p>
                 <p><strong>NPM:</strong> <span id="customerNPM"></span></p>
+            </div>
+            
+            <!-- User wallet display if available -->
+            <div id="userWalletSection" style="display: none;" class="user-wallet-section">
+                <p><strong>Your MBC Wallet:</strong></p>
+                <p id="userMBCWallet" class="user-wallet"></p>
+                <p style="font-size: 12px; color: #666;">Make sure to send payment from this wallet for better tracking.</p>
             </div>
             
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
@@ -386,6 +433,12 @@
                 Buat Pembayaran Baru
             </button>
         </div>
+        
+        <!-- Debug Log (hidden by default) -->
+        <div style="text-align: center;">
+            <span class="debug-toggle" onclick="toggleDebugLog()">Toggle Debug Log</span>
+        </div>
+        <div id="debugLog"></div>
     </div>
     
     <!-- Notification container -->
@@ -401,9 +454,11 @@
         let userInfo = {
             name: "",
             phoneNumber: "",
-            npm: ""
+            npm: "",
+            wonpaywallet: ""
         };
         const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
+        let debugMode = false;
         
         // Payment verification state
         const verificationState = {
@@ -418,43 +473,67 @@
         
         // Check queue status and get user info when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            logDebug("Page loaded, initializing...");
             getUserInfo();
             checkQueueStatus();
         });
         
+        // Helper function for debug logging
+        function logDebug(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `${timestamp}: ${message}`;
+            console.log(logEntry);
+            
+            const debugLog = document.getElementById('debugLog');
+            debugLog.innerHTML += `<div>${logEntry}</div>`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+        
+        // Toggle debug log visibility
+        function toggleDebugLog() {
+            const debugLog = document.getElementById('debugLog');
+            debugMode = !debugMode;
+            debugLog.style.display = debugMode ? 'block' : 'none';
+        }
+        
         // Get user info from token
         function getUserInfo() {
+            logDebug("Fetching user info from token...");
             fetch(`${API_URL}/api/crowdfunding/userinfo`, {
-    method: 'GET',
-    headers: {
-        'login': getCookie("login")  // Gunakan 'login' bukan 'Authorization'
-    }
-})
-.then(response => {
-    if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    return response.json();
-})
-.then(data => {
-    // Tampilkan informasi user
-    userInfo = {
-        name: data.name || "N/A",
-        phoneNumber: data.phoneNumber || "N/A",
-        npm: data.npm || "N/A"
-    };
-    
-    // Update UI dengan user info
-    const userInfoElement = document.getElementById('userInfo');
-    userInfoElement.innerHTML = `
-        <p><strong>Nama:</strong> ${userInfo.name}</p>
-        <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
-        <p><strong>NPM:</strong> ${userInfo.npm}</p>
-    `;
-})
-.catch(error => {
-    console.error('Error getting user info:', error);
-});
+                method: 'GET',
+                headers: {
+                    'login': getCookie("login")  // Use 'login' not 'Authorization'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                logDebug("User info received: " + JSON.stringify(data));
+                // Display user info
+                userInfo = {
+                    name: data.name || "N/A",
+                    phoneNumber: data.phoneNumber || "N/A",
+                    npm: data.npm || "N/A",
+                    wonpaywallet: data.wonpaywallet || ""
+                };
+                
+                // Update UI with user info
+                const userInfoElement = document.getElementById('userInfo');
+                userInfoElement.innerHTML = `
+                    <p><strong>Nama:</strong> ${userInfo.name}</p>
+                    <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+                    <p><strong>NPM:</strong> ${userInfo.npm}</p>
+                    ${userInfo.wonpaywallet ? `<p><strong>MBC Wallet:</strong> ${userInfo.wonpaywallet}</p>` : ''}
+                `;
+            })
+            .catch(error => {
+                logDebug("Error getting user info: " + error.message);
+                console.error('Error getting user info:', error);
+            });
         }
         
         // Helper function to get cookie
@@ -474,6 +553,7 @@
         
         // Show notification function
         function showNotification(message) {
+            logDebug("Notification: " + message);
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.classList.add('show');
@@ -485,6 +565,7 @@
         
         // Check queue status function
         function checkQueueStatus() {
+            logDebug("Checking payment queue status...");
             fetch(`${API_URL}/api/crowdfunding/queueStatus`)
                 .then(response => {
                     if (!response.ok) {
@@ -493,6 +574,7 @@
                     return response.json();
                 })
                 .then(data => {
+                    logDebug("Queue status response: " + JSON.stringify(data));
                     if (data.success && data.isProcessing) {
                         // If there's an active payment, show queue info and disable form
                         document.getElementById('queueInfo').style.display = 'block';
@@ -512,9 +594,11 @@
                         document.getElementById('queueMessage').style.display = 'none';
                         document.getElementById('submitBtn').disabled = false;
                         clearInterval(queueTimerInterval);
+                        logDebug("Queue is clear, ready for new payment");
                     }
                 })
                 .catch(error => {
+                    logDebug("Error checking queue status: " + error.message);
                     console.error('Error checking queue status:', error);
                     // Try again after a delay
                     setTimeout(checkQueueStatus, 10000);
@@ -528,11 +612,14 @@
             const expiryTime = new Date(expiryTimeStr);
             const queueTimerElement = document.getElementById('queueTimer');
             
+            logDebug("Starting queue timer, expires at: " + expiryTime.toLocaleTimeString());
+            
             queueTimerInterval = setInterval(function() {
                 const now = new Date();
                 const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
                 
                 if (timeLeft <= 0) {
+                    logDebug("Queue timer expired, checking queue status again");
                     clearInterval(queueTimerInterval);
                     checkQueueStatus(); // Check queue status again when timer expires
                 } else {
@@ -543,6 +630,7 @@
         
         // Create order function
         function createOrder() {
+            logDebug("Creating new MicroBitcoin payment order...");
             // Show loading state
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
@@ -550,13 +638,13 @@
             
             // Send request to server
             fetch(`${API_URL}/api/crowdfunding/microbitcoin/createOrder`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'login': getCookie("login")  // Gunakan 'login' bukan 'Authorization'
-    },
-    body: JSON.stringify({})
-})
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'login': getCookie("login")  // Use 'login' not 'Authorization'
+                },
+                body: JSON.stringify({})
+            })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -564,6 +652,7 @@
                 return response.json();
             })
             .then(data => {
+                logDebug("Order creation response: " + JSON.stringify(data));
                 // Reset loading state
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Buat Pembayaran';
@@ -579,14 +668,38 @@
                     document.getElementById('customerNPM').textContent = userInfo.npm;
                     document.getElementById('walletAddress').textContent = data.walletAddress;
                     
+                    // Show user wallet if available
+                    if (userInfo.wonpaywallet) {
+                        document.getElementById('userMBCWallet').textContent = userInfo.wonpaywallet;
+                        document.getElementById('userWalletSection').style.display = 'block';
+                    }
+                    
                     // Show payment container and hide order form
                     document.getElementById('orderForm').style.display = 'none';
                     document.getElementById('userInfo').style.display = 'none';
                     document.getElementById('paymentContainer').style.display = 'block';
                     
+                    // Reset verification state
+                    verificationState.step1Complete = false;
+                    verificationState.step1Waiting = false;
+                    verificationState.step2Complete = false;
+                    verificationState.step2Waiting = false;
+                    verificationState.step3Complete = false;
+                    verificationState.txid = null;
+                    verificationState.amount = 0;
+                    
+                    // Reset UI elements
+                    document.getElementById('step1Circle').className = 'step-circle';
+                    document.getElementById('step2Circle').className = 'step-circle';
+                    document.getElementById('step3Circle').className = 'step-circle';
+                    document.getElementById('step1Waiting').style.display = 'none';
+                    document.getElementById('step2Waiting').style.display = 'none';
+                    document.getElementById('transactionDetails').style.display = 'none';
+                    
                     // Start countdown - 15 minutes
                     startCountdown();
                     
+                    logDebug("Starting payment status checking");
                     // Start checking payment status
                     checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
                     
@@ -602,12 +715,15 @@
                     
                     setTimeout(checkQueueStatus, 5000);
                     showNotification('Sedang ada pembayaran berlangsung. Mohon tunggu.');
+                    logDebug("Payment creation blocked: queue is busy");
                 } else {
                     // Show error message
                     showNotification('Gagal membuat pembayaran: ' + data.message);
+                    logDebug("Payment creation failed: " + data.message);
                 }
             })
             .catch(error => {
+                logDebug("Error creating order: " + error.message);
                 console.error('Error creating order:', error);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Buat Pembayaran';
@@ -615,17 +731,20 @@
             });
         }
         
-        // Start countdown function - changed to 15 minutes (900 seconds)
+        // Start countdown function - 15 minutes (1500 seconds)
         function startCountdown() {
             let timeLeft = 1500; // 15 minutes
             const countdownElement = document.getElementById('countdown');
             countdownElement.textContent = timeLeft;
+            
+            logDebug("Starting payment countdown: " + timeLeft + " seconds");
             
             countdownInterval = setInterval(function() {
                 timeLeft--;
                 countdownElement.textContent = timeLeft;
                 
                 if (timeLeft <= 0) {
+                    logDebug("Payment countdown expired");
                     clearInterval(countdownInterval);
                     clearInterval(checkPaymentStatusInterval);
                     // Show expired payment message
@@ -658,6 +777,7 @@
             }
             
             // Normal Step 1 check
+            logDebug(`Checking payment status for order ${orderId} (Step 1)`);
             fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
                 .then(response => {
                     if (!response.ok) {
@@ -666,13 +786,17 @@
                     return response.json();
                 })
                 .then(data => {
+                    logDebug("Step 1 check response: " + JSON.stringify(data));
+                    
                     // Check and handle step 1 completion
                     if (data.step1Complete && !verificationState.step1Complete) {
+                        logDebug("Step 1 complete, transaction detected");
                         verificationState.step1Complete = true;
                         document.getElementById('step1Circle').classList.add('complete');
                         
                         // Save txid if available
                         if (data.txid) {
+                            logDebug("Transaction ID found: " + data.txid);
                             verificationState.txid = data.txid;
                             document.getElementById('transactionId').textContent = data.txid;
                             document.getElementById('transactionDetails').style.display = 'block';
@@ -686,8 +810,16 @@
                     // Handle payment status
                     if (data.success) {
                         if (data.status === 'success') {
+                            logDebug("Payment already successful");
                             // Payment already successful (e.g., from previous session)
                             clearInterval(checkPaymentStatusInterval);
+                            clearInterval(countdownInterval);
+                            
+                            // Complete all steps in the UI
+                            document.getElementById('step1Circle').classList.add('complete');
+                            document.getElementById('step2Circle').classList.add('complete');
+                            document.getElementById('step3Circle').classList.add('complete');
+                            
                             displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount ? data.amount.toFixed(8) : 0} MBC`);
                             
                             // Show transaction details
@@ -697,13 +829,16 @@
                                 document.getElementById('successDetails').style.display = 'block';
                             }
                         } else if (data.status === 'failed') {
+                            logDebug("Payment failed");
                             // Payment failed
                             clearInterval(checkPaymentStatusInterval);
+                            clearInterval(countdownInterval);
                             displayPaymentStatus('failed', 'Pembayaran gagal. Silakan coba lagi.');
                         }
                     }
                 })
                 .catch(error => {
+                    logDebug("Error checking payment status: " + error.message);
                     console.error('Error checking payment status:', error);
                 });
         }
@@ -711,6 +846,8 @@
         // Function to check Step 2 status (called after 7-minute wait)
         function checkStep2() {
             if (!orderId || !verificationState.txid) return;
+            
+            logDebug("Checking Step 2 with txid: " + verificationState.txid);
             
             fetch(`${API_URL}/api/crowdfunding/microbitcoin/checkStep2/${orderId}?txid=${verificationState.txid}`)
                 .then(response => {
@@ -720,18 +857,23 @@
                     return response.json();
                 })
                 .then(data => {
+                    logDebug("Step 2 response: " + JSON.stringify(data));
+                    
                     if (data.step2Complete) {
+                        logDebug("Step 2 complete, transaction confirmed in history");
                         verificationState.step2Complete = true;
                         document.getElementById('step2Circle').classList.add('complete');
                         
                         // Start the 1-minute wait before proceeding to step 3
                         startStep2Timer();
                     } else {
+                        logDebug("Step 2 not complete yet, checking again in 5 seconds");
                         // If Step 2 not complete, try again in a few seconds
                         setTimeout(checkStep2, 5000);
                     }
                 })
                 .catch(error => {
+                    logDebug("Error checking step 2: " + error.message);
                     console.error('Error checking step 2:', error);
                     // Try again after a delay
                     setTimeout(checkStep2, 10000);
@@ -742,6 +884,8 @@
         function checkStep3() {
             if (!orderId || !verificationState.txid) return;
             
+            logDebug("Checking Step 3 with txid: " + verificationState.txid);
+            
             fetch(`${API_URL}/api/crowdfunding/microbitcoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
                 .then(response => {
                     if (!response.ok) {
@@ -750,13 +894,20 @@
                     return response.json();
                 })
                 .then(data => {
+                    logDebug("Step 3 response: " + JSON.stringify(data));
+                    
                     if (data.step3Complete) {
+                        logDebug("Step 3 complete, transaction verified with amount: " + data.amount);
                         verificationState.step3Complete = true;
                         document.getElementById('step3Circle').classList.add('complete');
                         
                         // Now we have the verified amount from Step 3
                         verificationState.amount = data.amount;
                         document.getElementById('transactionAmount').textContent = data.amount.toFixed(8);
+                        
+                        // Stop all timers
+                        clearInterval(countdownInterval);
+                        clearInterval(checkPaymentStatusInterval);
                         
                         // Show successful payment
                         displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount.toFixed(8)} MBC`);
@@ -766,11 +917,13 @@
                         document.getElementById('successAmount').textContent = data.amount.toFixed(8);
                         document.getElementById('successDetails').style.display = 'block';
                     } else {
+                        logDebug("Step 3 not complete yet, checking again in 5 seconds");
                         // If Step 3 not complete, try again in a few seconds
                         setTimeout(checkStep3, 5000);
                     }
                 })
                 .catch(error => {
+                    logDebug("Error checking step 3: " + error.message);
                     console.error('Error checking step 3:', error);
                     // Try again after a delay
                     setTimeout(checkStep3, 10000);
@@ -790,11 +943,14 @@
             
             verificationState.step1Waiting = true;
             
+            logDebug("Starting step 1 waiting timer: " + timeLeft + " seconds");
+            
             step1TimerInterval = setInterval(function() {
                 timeLeft--;
                 timerElement.textContent = formatTime(timeLeft);
                 
                 if (timeLeft <= 0) {
+                    logDebug("Step 1 waiting period completed");
                     clearInterval(step1TimerInterval);
                     document.getElementById('step1Circle').classList.remove('processing');
                     document.getElementById('step1Waiting').style.display = 'none';
@@ -820,11 +976,14 @@
             
             verificationState.step2Waiting = true;
             
+            logDebug("Starting step 2 waiting timer: " + timeLeft + " seconds");
+            
             step2TimerInterval = setInterval(function() {
                 timeLeft--;
                 timerElement.textContent = formatTime(timeLeft);
                 
                 if (timeLeft <= 0) {
+                    logDebug("Step 2 waiting period completed");
                     clearInterval(step2TimerInterval);
                     document.getElementById('step2Circle').classList.remove('processing');
                     document.getElementById('step2Waiting').style.display = 'none';
@@ -839,6 +998,8 @@
         
         // Display payment status function
         function displayPaymentStatus(status, message) {
+            logDebug("Displaying payment status: " + status + " - " + message);
+            
             // Stop all timers
             clearInterval(countdownInterval);
             clearInterval(checkPaymentStatusInterval);
@@ -864,6 +1025,8 @@
         
         // Reset form function
         function resetForm() {
+            logDebug("Resetting form to create a new payment");
+            
             // Reset all state
             orderId = null;
             
@@ -887,6 +1050,7 @@
             document.getElementById('paymentContainer').style.display = 'none';
             document.getElementById('orderForm').style.display = 'block';
             document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userWalletSection').style.display = 'none';
             
             // Reset verification steps
             document.getElementById('step1Circle').classList.remove('complete', 'processing');

@@ -303,6 +303,23 @@
             margin-top: 10px;
             display: inline-block;
         }
+        
+        .user-wallet-section {
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 3px solid #384186;
+        }
+        
+        .user-wallet {
+            font-family: monospace;
+            word-break: break-all;
+            background-color: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -344,7 +361,13 @@
                 <p><strong>Nama:</strong> <span id="customerName"></span></p>
                 <p><strong>No. HP:</strong> <span id="customerPhone"></span></p>
                 <p><strong>NPM:</strong> <span id="customerNPM"></span></p>
-                <p><strong>NPM:</strong> <span id="customerRvnwalletwallet"></span></p>
+            </div>
+            
+            <!-- User wallet display if available -->
+            <div id="userWalletSection" style="display: none;" class="user-wallet-section">
+                <p><strong>Your RVN Wallet:</strong></p>
+                <p id="userRVNWallet" class="user-wallet"></p>
+                <p style="font-size: 12px; color: #666;">Make sure to send payment from this wallet for better tracking.</p>
             </div>
             
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
@@ -500,7 +523,7 @@
                     name: data.name || "N/A",
                     phoneNumber: data.phoneNumber || "N/A",
                     npm: data.npm || "N/A",
-                    rvnwallet: data.rvnwallet || "N/A"
+                    rvnwallet: data.rvnwallet || ""
                 };
                 
                 // Update UI with user info
@@ -509,7 +532,7 @@
                     <p><strong>Nama:</strong> ${userInfo.name}</p>
                     <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
                     <p><strong>NPM:</strong> ${userInfo.npm}</p>
-                    <p><strong>rvnwalletwallet:</strong> ${userInfo.rvnwallet}</p>
+                    ${userInfo.rvnwallet ? `<p><strong>RVN Wallet:</strong> ${userInfo.rvnwallet}</p>` : ''}
                 `;
             })
             .catch(error => {
@@ -648,8 +671,13 @@
                     document.getElementById('customerName').textContent = userInfo.name;
                     document.getElementById('customerPhone').textContent = userInfo.phoneNumber;
                     document.getElementById('customerNPM').textContent = userInfo.npm;
-                    document.getElementById('customerRvnwallet').textContent = userInfo.rvnwallet;
                     document.getElementById('walletAddress').textContent = data.walletAddress;
+                    
+                    // Show user wallet if available
+                    if (userInfo.rvnwallet) {
+                        document.getElementById('userRVNWallet').textContent = userInfo.rvnwallet;
+                        document.getElementById('userWalletSection').style.display = 'block';
+                    }
                     
                     // Show payment container and hide order form
                     document.getElementById('orderForm').style.display = 'none';
@@ -849,8 +877,8 @@
                         document.getElementById('step1Circle').classList.remove('processing');
                         document.getElementById('step1Waiting').style.display = 'none';
                         
-// Check step 3 directly now
-checkStep3();
+                        // Check step 3 directly now
+                        checkStep3();
                     } else {
                         logDebug("Step 2 not complete yet, still waiting for blockchain confirmation");
                         // If Step 2 not complete, check again in 5 seconds
@@ -973,6 +1001,7 @@ checkStep3();
             document.getElementById('paymentContainer').style.display = 'none';
             document.getElementById('orderForm').style.display = 'block';
             document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userWalletSection').style.display = 'none';
             
             // Reset verification steps
             document.getElementById('step1Circle').classList.remove('complete', 'processing');
