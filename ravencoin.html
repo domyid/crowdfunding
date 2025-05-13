@@ -344,6 +344,7 @@
                 <p><strong>Nama:</strong> <span id="customerName"></span></p>
                 <p><strong>No. HP:</strong> <span id="customerPhone"></span></p>
                 <p><strong>NPM:</strong> <span id="customerNPM"></span></p>
+                <p><strong>NPM:</strong> <span id="customerRvnwalletwallet"></span></p>
             </div>
             
             <p>Silakan scan kode QR di bawah ini untuk melakukan pembayaran</p>
@@ -437,7 +438,8 @@
         let userInfo = {
             name: "",
             phoneNumber: "",
-            npm: ""
+            npm: "",
+            rvnwallet: ""
         };
         const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         let debugMode = false;
@@ -497,7 +499,8 @@
                 userInfo = {
                     name: data.name || "N/A",
                     phoneNumber: data.phoneNumber || "N/A",
-                    npm: data.npm || "N/A"
+                    npm: data.npm || "N/A",
+                    rvnwallet: data.rvnwallet || "N/A"
                 };
                 
                 // Update UI with user info
@@ -506,6 +509,7 @@
                     <p><strong>Nama:</strong> ${userInfo.name}</p>
                     <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
                     <p><strong>NPM:</strong> ${userInfo.npm}</p>
+                    <p><strong>rvnwalletwallet:</strong> ${userInfo.rvnwallet}</p>
                 `;
             })
             .catch(error => {
@@ -644,6 +648,7 @@
                     document.getElementById('customerName').textContent = userInfo.name;
                     document.getElementById('customerPhone').textContent = userInfo.phoneNumber;
                     document.getElementById('customerNPM').textContent = userInfo.npm;
+                    document.getElementById('customerRvnwallet').textContent = userInfo.rvnwallet;
                     document.getElementById('walletAddress').textContent = data.walletAddress;
                     
                     // Show payment container and hide order form
