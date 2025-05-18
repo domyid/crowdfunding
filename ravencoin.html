@@ -620,9 +620,19 @@ function getUserInfo() {
         if (!data.phoneNumber || data.phoneNumber === "N/A") missingFields.push("Nomor HP");
         if (!data.npm || data.npm === "N/A") missingFields.push("NPM");
         
+        // Check specifically for RVN wallet since we're on the Ravencoin payment page
+        const rvnWalletMissing = !data.rvnwallet || data.rvnwallet === "";
+        if (rvnWalletMissing) missingFields.push("RVN Wallet");
+        
         // If missing required fields, show notification and disable payment
         if (missingFields.length > 0) {
-            showErrorNotification("Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", "));
+            // Special message for RVN wallet if it's missing
+            let message = "Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", ");
+            if (rvnWalletMissing) {
+                message = "Anda belum mengisi alamat RVN Wallet. Pembayaran Ravencoin memerlukan alamat wallet yang valid. Silakan lengkapi profil Anda terlebih dahulu.";
+            }
+            
+            showErrorNotification(message);
             document.getElementById('submitBtn').disabled = true;
             
             // Update UI with warning
@@ -633,6 +643,8 @@ function getUserInfo() {
                     <ul style="margin-top: 5px; padding-left: 20px;">
                         ${missingFields.map(field => `<li>${field}</li>`).join('')}
                     </ul>
+                    ${rvnWalletMissing ? 
+                        `<p style="margin-top: 10px;"><strong>Untuk pembayaran dengan Ravencoin, Anda HARUS mengisi alamat RVN Wallet terlebih dahulu.</strong></p>` : ''}
                     <p style="margin-top: 10px; font-size: 14px;">Silakan lengkapi profil Anda di <a href="https://do.my.id/profile" style="color: #856404; font-weight: bold;">halaman profil</a> sebelum melakukan pembayaran.</p>
                 </div>
             `;

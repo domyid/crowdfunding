@@ -615,9 +615,19 @@ function getUserInfo() {
         if (!data.phoneNumber || data.phoneNumber === "N/A") missingFields.push("Nomor HP");
         if (!data.npm || data.npm === "N/A") missingFields.push("NPM");
         
+        // Check specifically for MBC wallet since we're on the MBC payment page
+        const mbcWalletMissing = !data.wonpaywallet || data.wonpaywallet === "";
+        if (mbcWalletMissing) missingFields.push("MBC Wallet");
+        
         // If missing required fields, show notification and disable payment
         if (missingFields.length > 0) {
-            showErrorNotification("Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", "));
+            // Special message for MBC wallet if it's missing
+            let message = "Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", ");
+            if (mbcWalletMissing) {
+                message = "Anda belum mengisi alamat MBC Wallet. Pembayaran MicroBitcoin memerlukan alamat wallet yang valid. Silakan lengkapi profil Anda terlebih dahulu.";
+            }
+            
+            showErrorNotification(message);
             document.getElementById('submitBtn').disabled = true;
             
             // Update UI with warning
@@ -628,6 +638,8 @@ function getUserInfo() {
                     <ul style="margin-top: 5px; padding-left: 20px;">
                         ${missingFields.map(field => `<li>${field}</li>`).join('')}
                     </ul>
+                    ${mbcWalletMissing ? 
+                        `<p style="margin-top: 10px;"><strong>Untuk pembayaran dengan MicroBitcoin, Anda HARUS mengisi alamat MBC Wallet terlebih dahulu.</strong></p>` : ''}
                     <p style="margin-top: 10px; font-size: 14px;">Silakan lengkapi profil Anda di <a href="https://do.my.id/profile" style="color: #856404; font-weight: bold;">halaman profil</a> sebelum melakukan pembayaran.</p>
                 </div>
             `;
