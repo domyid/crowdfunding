@@ -612,26 +612,88 @@
         
         // Start queue timer
         function startQueueTimer(expiryTimeStr) {
+    clearInterval(queueTimerInterval);
+    
+    const expiryTime = new Date(expiryTimeStr);
+    const queueTimerElement = document.getElementById('queueTimer');
+    
+    // Log timer start
+    console.log("Starting queue timer, expires at:", expiryTime.toLocaleTimeString());
+    
+    // Keep track of manual reset attempts
+    let resetAttempted = false;
+    
+    queueTimerInterval = setInterval(function() {
+        const now = new Date();
+        const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
+        
+        if (timeLeft <= 0) {
+            console.log("Queue timer expired, unlocking payment form");
             clearInterval(queueTimerInterval);
             
-            const expiryTime = new Date(expiryTimeStr);
-            const queueTimerElement = document.getElementById('queueTimer');
+            // IMPORTANT: This is the main fix - force enable submission after timer expires
+            document.getElementById('queueInfo').style.display = 'none';
+            document.getElementById('queueMessage').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
             
-            logDebug("Starting queue timer, expires at: " + expiryTime.toLocaleTimeString());
-            
-            queueTimerInterval = setInterval(function() {
-                const now = new Date();
-                const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
-                
-                if (timeLeft <= 0) {
-                    logDebug("Queue timer expired, checking queue status again");
-                    clearInterval(queueTimerInterval);
-                    checkQueueStatus(); // Check queue status again when timer expires
-                } else {
-                    queueTimerElement.textContent = formatTime(timeLeft);
-                }
-            }, 1000);
+            // Try to refresh queue status from server
+            if (!resetAttempted) {
+                resetAttempted = true;
+                forceResetQueue();
+                checkQueueStatus();
+            }
+        } else {
+            queueTimerElement.textContent = formatTime(timeLeft);
         }
+    }, 1000);
+}
+
+// New function to force reset queue status if timer expires
+function forceResetQueue() {
+    console.log("Attempting to force reset queue status...");
+    
+    // For security, we'll add a manual refresh button that appears when timer reaches zero
+    const queueInfo = document.getElementById('queueInfo');
+    
+    // Add a refresh button to the queue info div
+    if (queueInfo) {
+        queueInfo.innerHTML += `
+            <div style="margin-top: 10px;">
+                <button onclick="checkQueueStatus()" style="padding: 5px 10px; background-color: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                    Refresh Queue Status
+                </button>
+            </div>
+        `;
+    }
+    
+    // Make an API call to force reset the queue if it's expired
+    fetch(`${API_URL}/api/crowdfunding/queueStatus`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.isProcessing) {
+                const expiryTime = new Date(data.expiryTime);
+                const now = new Date();
+                
+                // If the expiry time has passed but queue still shows as processing
+                if (expiryTime < now) {
+                    console.log("Detected expired queue still marked as processing. Attempting to unlock...");
+                    
+                    // Show a notification to the user
+                    showNotification("Payment session expired. You can now create a new payment.");
+                    
+                    // Force enable the payment button
+                    document.getElementById('queueInfo').style.display = 'none';
+                    document.getElementById('queueMessage').style.display = 'none';
+                    document.getElementById('submitBtn').disabled = false;
+                }
+            }
+        })
+        .catch(error => {
+            console.error("Error checking queue status:", error);
+            // If there's an error, still enable the form to prevent complete lockout
+            document.getElementById('submitBtn').disabled = false;
+        });
+}
         
         // Create order function
         function createOrder() {
