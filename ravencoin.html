@@ -501,45 +501,95 @@
             debugLog.style.display = debugMode ? 'block' : 'none';
         }
         
-        // Get user info from token
-        function getUserInfo() {
-            logDebug("Fetching user info from token...");
-            fetch(`${API_URL}/api/crowdfunding/userinfo`, {
-                method: 'GET',
-                headers: {
-                    'login': getCookie("login")  // Use 'login' not 'Authorization'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                logDebug("User info received: " + JSON.stringify(data));
-                // Display user info
-                userInfo = {
-                    name: data.name || "N/A",
-                    phoneNumber: data.phoneNumber || "N/A",
-                    npm: data.npm || "N/A",
-                    rvnwallet: data.rvnwallet || ""
-                };
-                
-                // Update UI with user info
-                const userInfoElement = document.getElementById('userInfo');
-                userInfoElement.innerHTML = `
-                    <p><strong>Nama:</strong> ${userInfo.name}</p>
-                    <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
-                    <p><strong>NPM:</strong> ${userInfo.npm}</p>
-                    ${userInfo.rvnwallet ? `<p><strong>RVN Wallet:</strong> ${userInfo.rvnwallet}</p>` : ''}
-                `;
-            })
-            .catch(error => {
-                logDebug("Error getting user info: " + error.message);
-                console.error('Error getting user info:', error);
-            });
+      // Get user info from token
+function getUserInfo() {
+    logDebug("Fetching user info from token...");
+    fetch(`${API_URL}/api/crowdfunding/userinfo`, {
+        method: 'GET',
+        headers: {
+            'login': getCookie("login")  // Use 'login' not 'Authorization'
         }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        logDebug("User info received: " + JSON.stringify(data));
+        
+        // Check for missing required fields
+        const missingFields = [];
+        if (!data.name || data.name === "N/A") missingFields.push("Nama");
+        if (!data.phoneNumber || data.phoneNumber === "N/A") missingFields.push("Nomor HP");
+        if (!data.npm || data.npm === "N/A") missingFields.push("NPM");
+        
+        // If missing required fields, show notification and disable payment
+        if (missingFields.length > 0) {
+            showErrorNotification("Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", "));
+            document.getElementById('submitBtn').disabled = true;
+            
+            // Update UI with warning
+            const userInfoElement = document.getElementById('userInfo');
+            userInfoElement.innerHTML = `
+                <div style="background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                    <p><strong>⚠️ Perhatian:</strong> Data Anda belum lengkap. Silakan lengkapi data berikut:</p>
+                    <ul style="margin-top: 5px; padding-left: 20px;">
+                        ${missingFields.map(field => `<li>${field}</li>`).join('')}
+                    </ul>
+                    <p style="margin-top: 10px; font-size: 14px;">Silakan lengkapi profil Anda di <a href="https://do.my.id/profile" style="color: #856404; font-weight: bold;">halaman profil</a> sebelum melakukan pembayaran.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Display user info if complete
+        userInfo = {
+            name: data.name || "N/A",
+            phoneNumber: data.phoneNumber || "N/A",
+            npm: data.npm || "N/A",
+            rvnwallet: data.rvnwallet || ""
+        };
+        
+        // Update UI with user info
+        const userInfoElement = document.getElementById('userInfo');
+        userInfoElement.innerHTML = `
+            <p><strong>Nama:</strong> ${userInfo.name}</p>
+            <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+            <p><strong>NPM:</strong> ${userInfo.npm}</p>
+            ${userInfo.rvnwallet ? `<p><strong>RVN Wallet:</strong> ${userInfo.rvnwallet}</p>` : ''}
+        `;
+    })
+    .catch(error => {
+        logDebug("Error getting user info: " + error.message);
+        console.error('Error getting user info:', error);
+        
+        showErrorNotification("Gagal mendapatkan informasi pengguna. Silakan coba lagi atau login ulang.");
+        document.getElementById('submitBtn').disabled = true;
+        
+        const userInfoElement = document.getElementById('userInfo');
+        userInfoElement.innerHTML = `
+            <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px;">
+                <p><strong>❌ Error:</strong> Gagal mendapatkan informasi pengguna.</p>
+                <p>Silakan <a href="https://do.my.id/signin" style="color: #721c24; font-weight: bold;">login ulang</a> untuk melanjutkan.</p>
+            </div>
+        `;
+    });
+}
+
+// Custom error notification function
+function showErrorNotification(message) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.style.backgroundColor = "#f8d7da";
+    notification.style.color = "#721c24";
+    notification.classList.add('show');
+    
+    setTimeout(function() {
+        notification.classList.remove('show');
+    }, 8000); // Show for longer time (8 seconds)
+}
         
         // Helper function to get cookie
         function getCookie(name) {
@@ -1076,6 +1126,103 @@ function forceResetQueue() {
             // Check queue status
             checkQueueStatus();
         }
+
+        // Prevent refresh and show warning
+function setupRefreshWarning() {
+    // Variable to track if payment in progress
+    window.paymentInProgress = false;
+    
+    // Function to handle beforeunload event
+    window.addEventListener('beforeunload', function(e) {
+        // Only show warning if payment is in progress
+        if (window.paymentInProgress) {
+            // Standard text that most browsers will display regardless of this message
+            const confirmationMessage = 'Pembayaran sedang berlangsung! Jika Anda meninggalkan atau me-refresh halaman ini, data pembayaran akan hilang. Yakin ingin melanjutkan?';
+            
+            // For old browsers
+            (e || window.event).returnValue = confirmationMessage;
+            return confirmationMessage;
+        }
+    });
+    
+    // Add listener for unload event to log actual exit
+    window.addEventListener('unload', function() {
+        if (window.paymentInProgress) {
+            // Could send an analytics event here if needed
+            console.log("User left during payment process");
+        }
+    });
+    
+    // Prevent F5 key
+    document.addEventListener('keydown', function(e) {
+        if ((e.which || e.keyCode) == 116) { // F5 key code
+            if (window.paymentInProgress) {
+                e.preventDefault();
+                showRefreshWarningModal();
+                return false;
+            }
+        }
+    });
+    
+    // Create modal if it doesn't exist
+    if (!document.getElementById('refreshWarningModal')) {
+        const modal = document.createElement('div');
+        modal.id = 'refreshWarningModal';
+        modal.style.display = 'none';
+        modal.style.position = 'fixed';
+        modal.style.zIndex = '1000';
+        modal.style.left = '0';
+        modal.style.top = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.4)';
+        modal.style.overflow = 'auto';
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.backgroundColor = '#fff';
+        modalContent.style.margin = '15% auto';
+        modalContent.style.padding = '20px';
+        modalContent.style.border = '1px solid #888';
+        modalContent.style.width = '80%';
+        modalContent.style.maxWidth = '450px';
+        modalContent.style.borderRadius = '5px';
+        modalContent.style.boxShadow = '0 4px 8px 0 rgba(0,0,0,0.2)';
+        
+        modalContent.innerHTML = `
+            <h3 style="color: #e74c3c; margin-top: 0;">⚠️ Peringatan!</h3>
+            <p>Pembayaran sedang berlangsung. Me-refresh halaman ini akan menghentikan proses pembayaran dan data Anda akan hilang.</p>
+            <p>Apa Anda yakin ingin me-refresh halaman ini?</p>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button id="cancelRefreshBtn" style="margin-right: 10px; padding: 8px 15px; background-color: #7f8c8d; color: white; border: none; border-radius: 3px; cursor: pointer;">Batal</button>
+                <button id="confirmRefreshBtn" style="padding: 8px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer;">Ya, Refresh</button>
+            </div>
+        `;
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Add event listeners to modal buttons
+        document.getElementById('cancelRefreshBtn').addEventListener('click', function() {
+            document.getElementById('refreshWarningModal').style.display = 'none';
+        });
+        
+        document.getElementById('confirmRefreshBtn').addEventListener('click', function() {
+            document.getElementById('refreshWarningModal').style.display = 'none';
+            // Allow the refresh to happen
+            window.paymentInProgress = false;
+            // Perform refresh
+            window.location.reload();
+        });
+    }
+}
+
+// Show refresh warning modal
+function showRefreshWarningModal() {
+    document.getElementById('refreshWarningModal').style.display = 'block';
+}
+
+// Add this to each page's window load event
+document.addEventListener('DOMContentLoaded', setupRefreshWarning);
     </script>
     <script type="module">
         import { getCookie } from "https://cdn.jsdelivr.net/gh/jscroot/cookie@0.0.1/croot.js";
