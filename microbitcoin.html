@@ -445,7 +445,7 @@
     <div id="notification" class="notification"></div>
 
     <script>
-       let orderId = null;
+ let orderId = null;
 let countdownInterval = null;
 let checkPaymentStatusInterval = null;
 let queueTimerInterval = null;
@@ -565,6 +565,51 @@ function showRefreshWarningModal() {
     document.getElementById('refreshWarningModal').style.display = 'block';
 }
 
+// Function to validate user data more thoroughly
+function validateUserData(data) {
+    logDebug("=== VALIDATING USER DATA ===");
+    logDebug("Raw data received: " + JSON.stringify(data));
+    
+    const validationResult = {
+        isValid: true,
+        missingFields: [],
+        issues: []
+    };
+    
+    // Check name
+    if (!data.name || data.name === "N/A" || data.name.trim() === "" || data.name === null || data.name === undefined) {
+        validationResult.missingFields.push("Nama");
+        validationResult.issues.push(`Name issue: value='${data.name}', type=${typeof data.name}`);
+        validationResult.isValid = false;
+    }
+    
+    // Check phone number
+    if (!data.phoneNumber || data.phoneNumber === "N/A" || data.phoneNumber.trim() === "" || data.phoneNumber === null || data.phoneNumber === undefined) {
+        validationResult.missingFields.push("Nomor HP");
+        validationResult.issues.push(`Phone issue: value='${data.phoneNumber}', type=${typeof data.phoneNumber}`);
+        validationResult.isValid = false;
+    }
+    
+    // Check NPM
+    if (!data.npm || data.npm === "N/A" || data.npm.trim() === "" || data.npm === null || data.npm === undefined) {
+        validationResult.missingFields.push("NPM");
+        validationResult.issues.push(`NPM issue: value='${data.npm}', type=${typeof data.npm}`);
+        validationResult.isValid = false;
+    }
+    
+    // Check MBC Wallet
+    if (!data.wonpaywallet || data.wonpaywallet === "N/A" || data.wonpaywallet.trim() === "" || data.wonpaywallet === null || data.wonpaywallet === undefined) {
+        validationResult.missingFields.push("MBC Wallet");
+        validationResult.issues.push(`MBC Wallet issue: value='${data.wonpaywallet}', type=${typeof data.wonpaywallet}`);
+        validationResult.isValid = false;
+    }
+    
+    logDebug("Validation result: " + JSON.stringify(validationResult));
+    logDebug("=== END VALIDATION ===");
+    
+    return validationResult;
+}
+
 // Check queue status and get user info when page loads
 document.addEventListener('DOMContentLoaded', function() {
     logDebug("Page loaded, initializing...");
@@ -580,103 +625,183 @@ function logDebug(message) {
     console.log(logEntry);
     
     const debugLog = document.getElementById('debugLog');
-    debugLog.innerHTML += `<div>${logEntry}</div>`;
-    debugLog.scrollTop = debugLog.scrollHeight;
+    if (debugLog) {
+        debugLog.innerHTML += `<div>${logEntry}</div>`;
+        debugLog.scrollTop = debugLog.scrollHeight;
+    }
 }
 
 // Toggle debug log visibility
 function toggleDebugLog() {
     const debugLog = document.getElementById('debugLog');
     debugMode = !debugMode;
-    debugLog.style.display = debugMode ? 'block' : 'none';
+    if (debugLog) {
+        debugLog.style.display = debugMode ? 'block' : 'none';
+    }
 }
 
 // Get user info from token
 function getUserInfo() {
-    logDebug("Fetching user info from token...");
+    logDebug("=== STARTING getUserInfo ===");
+    
     fetch(`${API_URL}/api/crowdfunding/userinfo`, {
         method: 'GET',
         headers: {
-            'login': getCookie("login")  // Use 'login' not 'Authorization'
+            'login': getCookie("login")
         }
     })
     .then(response => {
+        logDebug("Response status: " + response.status);
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
-        logDebug("User info received: " + JSON.stringify(data));
+        logDebug("=== RAW API RESPONSE ===");
+        logDebug("Full response: " + JSON.stringify(data, null, 2));
+        logDebug("========================");
         
-        // Check for missing required fields
-        const missingFields = [];
-        if (!data.name || data.name === "N/A") missingFields.push("Nama");
-        if (!data.phoneNumber || data.phoneNumber === "N/A") missingFields.push("Nomor HP");
-        if (!data.npm || data.npm === "N/A") missingFields.push("NPM");
+        // Validate the data
+        const validation = validateUserData(data);
         
-        // Check specifically for MBC wallet since we're on the MBC payment page
-        const mbcWalletMissing = !data.wonpaywallet || data.wonpaywallet === "";
-        if (mbcWalletMissing) missingFields.push("MBC Wallet");
-        
-        // If missing required fields, show notification and disable payment
-        if (missingFields.length > 0) {
-            // Special message for MBC wallet if it's missing
-            let message = "Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", ");
-            if (mbcWalletMissing) {
-                message = "Anda belum mengisi alamat MBC Wallet. Pembayaran MicroBitcoin memerlukan alamat wallet yang valid. Silakan lengkapi profil Anda terlebih dahulu.";
+        if (!validation.isValid) {
+            logDebug("=== VALIDATION FAILED ===");
+            logDebug("Missing fields: " + JSON.stringify(validation.missingFields));
+            logDebug("Issues: " + JSON.stringify(validation.issues));
+            
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
             }
             
-            showErrorNotification(message);
-            document.getElementById('submitBtn').disabled = true;
+            showErrorNotification("Data tidak lengkap: " + validation.missingFields.join(", "));
             
-            // Update UI with warning
+            // Check if MBC wallet is missing
+            const mbcWalletMissing = validation.missingFields.includes("MBC Wallet");
+            
+            // Show detailed error UI
             const userInfoElement = document.getElementById('userInfo');
-            userInfoElement.innerHTML = `
-                <div style="background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                    <p><strong>⚠️ Perhatian:</strong> Data Anda belum lengkap. Silakan lengkapi data berikut:</p>
-                    <ul style="margin-top: 5px; padding-left: 20px;">
-                        ${missingFields.map(field => `<li>${field}</li>`).join('')}
-                    </ul>
-                    ${mbcWalletMissing ? 
-                        `<p style="margin-top: 10px;"><strong>Untuk pembayaran dengan MicroBitcoin, Anda HARUS mengisi alamat MBC Wallet terlebih dahulu.</strong></p>` : ''}
-                    <p style="margin-top: 10px; font-size: 14px;">Silakan lengkapi profil Anda di <a href="https://do.my.id/profile" style="color: #856404; font-weight: bold;">halaman profil</a> sebelum melakukan pembayaran.</p>
-                </div>
-            `;
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `
+                    <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 2px solid #ffc107;">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 24px; margin-right: 10px;">⚠️</span>
+                            <h4 style="margin: 0; color: #856404;">Data Pengguna Tidak Lengkap</h4>
+                        </div>
+                        
+                        <p><strong>Data yang harus dilengkapi:</strong></p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            ${validation.missingFields.map(field => `<li><strong>${field}</strong></li>`).join('')}
+                        </ul>
+                        
+                        ${mbcWalletMissing ? 
+                            `<div style="background-color: rgba(220, 53, 69, 0.1); padding: 10px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #dc3545;">
+                                <p style="margin: 0; font-weight: bold; color: #dc3545;">🔑 MBC Wallet Wajib Diisi!</p>
+                                <p style="margin: 5px 0 0 0; font-size: 14px;">Untuk pembayaran MicroBitcoin, alamat MBC Wallet adalah wajib dan tidak boleh kosong.</p>
+                            </div>` : ''}
+                        
+                        <div style="background-color: rgba(255, 193, 7, 0.2); padding: 10px; border-radius: 5px; margin-top: 15px;">
+                            <p style="margin: 0; font-weight: bold;">🔧 Cara Mengatasi:</p>
+                            <ol style="margin: 10px 0; padding-left: 20px;">
+                                <li>Klik tombol di bawah untuk ke halaman profil</li>
+                                <li>Lengkapi semua data yang diminta (terutama MBC Wallet)</li>
+                                <li>Simpan perubahan</li>
+                                <li>Kembali ke halaman ini (refresh jika perlu)</li>
+                            </ol>
+                            <div style="text-align: center; margin-top: 15px;">
+                                <a href="https://do.my.id/profile" target="_blank" style="display: inline-block; background-color: #ffc107; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                                    📝 Lengkapi Profil Sekarang
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #6c757d;">
+                            <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                                <strong>Debug Info:</strong> ${validation.issues.join('; ')}
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
             return;
         }
         
-        // Display user info if complete
+        logDebug("=== VALIDATION PASSED ===");
+        
+        // Store user info
         userInfo = {
-            name: data.name || "N/A",
-            phoneNumber: data.phoneNumber || "N/A",
-            npm: data.npm || "N/A",
-            wonpaywallet: data.wonpaywallet || ""
+            name: data.name,
+            phoneNumber: data.phoneNumber,
+            npm: data.npm,
+            wonpaywallet: data.wonpaywallet
         };
         
-        // Update UI with user info
+        logDebug("Stored userInfo: " + JSON.stringify(userInfo));
+        
+        // Enable submit button
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+        
+        // Show success UI
         const userInfoElement = document.getElementById('userInfo');
-        userInfoElement.innerHTML = `
-            <p><strong>Nama:</strong> ${userInfo.name}</p>
-            <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
-            <p><strong>NPM:</strong> ${userInfo.npm}</p>
-            ${userInfo.wonpaywallet ? `<p><strong>MBC Wallet:</strong> ${userInfo.wonpaywallet}</p>` : ''}
-        `;
+        if (userInfoElement) {
+            userInfoElement.innerHTML = `
+                <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 2px solid #28a745;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 24px; margin-right: 10px;">✅</span>
+                        <h4 style="margin: 0; color: #155724;">Data Pengguna Lengkap</h4>
+                    </div>
+                    <div style="background-color: rgba(40, 167, 69, 0.1); padding: 10px; border-radius: 5px;">
+                        <p><strong>Nama:</strong> ${userInfo.name}</p>
+                        <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+                        <p><strong>NPM:</strong> ${userInfo.npm}</p>
+                        <p style="margin-bottom: 0;"><strong>MBC Wallet:</strong> ${userInfo.wonpaywallet}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        logDebug("=== getUserInfo COMPLETED SUCCESSFULLY ===");
     })
     .catch(error => {
-        logDebug("Error getting user info: " + error.message);
-        console.error('Error getting user info:', error);
+        logDebug("=== ERROR in getUserInfo ===");
+        logDebug("Error details: " + error.message);
         
-        showErrorNotification("Gagal mendapatkan informasi pengguna. Silakan coba lagi atau login ulang.");
-        document.getElementById('submitBtn').disabled = true;
+        // Disable submit button
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+        
+        showErrorNotification("Gagal mendapatkan informasi pengguna: " + error.message);
         
         const userInfoElement = document.getElementById('userInfo');
-        userInfoElement.innerHTML = `
-            <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px;">
-                <p><strong>❌ Error:</strong> Gagal mendapatkan informasi pengguna.</p>
-                <p>Silakan <a href="https://do.my.id/signin" style="color: #721c24; font-weight: bold;">login ulang</a> untuk melanjutkan.</p>
-            </div>
-        `;
+        if (userInfoElement) {
+            userInfoElement.innerHTML = `
+                <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; border: 2px solid #dc3545;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 24px; margin-right: 10px;">❌</span>
+                        <h4 style="margin: 0; color: #721c24;">Error Mengambil Data</h4>
+                    </div>
+                    <p>Gagal mendapatkan informasi pengguna dari server.</p>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a href="https://do.my.id/signin" style="display: inline-block; background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            🔐 Login Ulang
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
     });
 }
 
@@ -699,25 +824,31 @@ function formatTime(seconds) {
 function showNotification(message) {
     logDebug("Notification: " + message);
     const notification = document.getElementById('notification');
-    notification.textContent = message;
-    notification.classList.add('show');
-    
-    setTimeout(function() {
-        notification.classList.remove('show');
-    }, 5000);
+    if (notification) {
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(function() {
+            notification.classList.remove('show');
+        }, 5000);
+    }
 }
 
 // Custom error notification function
 function showErrorNotification(message) {
     const notification = document.getElementById('notification');
-    notification.textContent = message;
-    notification.style.backgroundColor = "#f8d7da";
-    notification.style.color = "#721c24";
-    notification.classList.add('show');
-    
-    setTimeout(function() {
-        notification.classList.remove('show');
-    }, 8000); // Show for longer time (8 seconds)
+    if (notification) {
+        notification.textContent = message;
+        notification.style.backgroundColor = "#f8d7da";
+        notification.style.color = "#721c24";
+        notification.classList.add('show');
+        
+        setTimeout(function() {
+            notification.classList.remove('show');
+            notification.style.backgroundColor = "";
+            notification.style.color = "";
+        }, 8000); // Show for longer time (8 seconds)
+    }
 }
 
 // Check queue status function
@@ -734,9 +865,13 @@ function checkQueueStatus() {
             logDebug("Queue status response: " + JSON.stringify(data));
             if (data.success && data.isProcessing) {
                 // If there's an active payment, show queue info and disable form
-                document.getElementById('queueInfo').style.display = 'block';
-                document.getElementById('queueMessage').style.display = 'block';
-                document.getElementById('submitBtn').disabled = true;
+                const queueInfo = document.getElementById('queueInfo');
+                const queueMessage = document.getElementById('queueMessage');
+                const submitBtn = document.getElementById('submitBtn');
+                
+                if (queueInfo) queueInfo.style.display = 'block';
+                if (queueMessage) queueMessage.style.display = 'block';
+                if (submitBtn) submitBtn.disabled = true;
                 
                 // Start queue countdown
                 if (data.expiryTime) {
@@ -747,9 +882,15 @@ function checkQueueStatus() {
                 setTimeout(checkQueueStatus, 5000);
             } else {
                 // If no active payment, enable form
-                document.getElementById('queueInfo').style.display = 'none';
-                document.getElementById('queueMessage').style.display = 'none';
-                document.getElementById('submitBtn').disabled = false;
+                const queueInfo = document.getElementById('queueInfo');
+                const queueMessage = document.getElementById('queueMessage');
+                const submitBtn = document.getElementById('submitBtn');
+                
+                if (queueInfo) queueInfo.style.display = 'none';
+                if (queueMessage) queueMessage.style.display = 'none';
+                if (submitBtn && userInfo.name && userInfo.phoneNumber && userInfo.npm && userInfo.wonpaywallet) {
+                    submitBtn.disabled = false;
+                }
                 clearInterval(queueTimerInterval);
                 logDebug("Queue is clear, ready for new payment");
             }
@@ -780,24 +921,41 @@ function startQueueTimer(expiryTimeStr) {
             clearInterval(queueTimerInterval);
             
             // Force enable the payment button when timer expires
-            document.getElementById('queueInfo').style.display = 'none';
-            document.getElementById('queueMessage').style.display = 'none';
-            document.getElementById('submitBtn').disabled = false;
+            const queueInfo = document.getElementById('queueInfo');
+            const queueMessage = document.getElementById('queueMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (queueInfo) queueInfo.style.display = 'none';
+            if (queueMessage) queueMessage.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = false;
             
             checkQueueStatus(); // Check queue status again when timer expires
         } else {
-            queueTimerElement.textContent = formatTime(timeLeft);
+            if (queueTimerElement) queueTimerElement.textContent = formatTime(timeLeft);
         }
     }, 1000);
 }
 
 // Create order function
 function createOrder() {
-    logDebug("Creating new MicroBitcoin payment order...");
+    logDebug("=== CREATING ORDER ===");
+    logDebug("Current userInfo: " + JSON.stringify(userInfo));
+    
+    // Double-check user data before creating order
+    if (!userInfo.name || !userInfo.phoneNumber || !userInfo.npm || !userInfo.wonpaywallet) {
+        logDebug("=== ORDER CREATION BLOCKED - INCOMPLETE DATA ===");
+        showErrorNotification("Data pengguna tidak lengkap. Silakan refresh halaman dan lengkapi profil Anda.");
+        return;
+    }
+    
+    logDebug("=== ORDER VALIDATION PASSED ===");
+    
     // Show loading state
     const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<div class="loading"></div> Memproses...';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="loading"></div> Memproses...';
+    }
     
     // Send request to server
     fetch(`${API_URL}/api/crowdfunding/microbitcoin/createOrder`, {
@@ -817,8 +975,10 @@ function createOrder() {
     .then(data => {
         logDebug("Order creation response: " + JSON.stringify(data));
         // Reset loading state
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Buat Pembayaran';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Buat Pembayaran';
+        }
         
         if (data.success) {
             // Mark payment as in progress to prevent refresh
@@ -828,22 +988,34 @@ function createOrder() {
             orderId = data.orderId;
             
             // Update payment details
-            document.getElementById('orderId').textContent = data.orderId;
-            document.getElementById('customerName').textContent = userInfo.name;
-            document.getElementById('customerPhone').textContent = userInfo.phoneNumber;
-            document.getElementById('customerNPM').textContent = userInfo.npm;
-            document.getElementById('walletAddress').textContent = data.walletAddress;
+            const orderIdEl = document.getElementById('orderId');
+            const customerNameEl = document.getElementById('customerName');
+            const customerPhoneEl = document.getElementById('customerPhone');
+            const customerNPMEl = document.getElementById('customerNPM');
+            const walletAddressEl = document.getElementById('walletAddress');
+            
+            if (orderIdEl) orderIdEl.textContent = data.orderId;
+            if (customerNameEl) customerNameEl.textContent = userInfo.name;
+            if (customerPhoneEl) customerPhoneEl.textContent = userInfo.phoneNumber;
+            if (customerNPMEl) customerNPMEl.textContent = userInfo.npm;
+            if (walletAddressEl) walletAddressEl.textContent = data.walletAddress;
             
             // Show user wallet if available
             if (userInfo.wonpaywallet) {
-                document.getElementById('userMBCWallet').textContent = userInfo.wonpaywallet;
-                document.getElementById('userWalletSection').style.display = 'block';
+                const userMBCWalletEl = document.getElementById('userMBCWallet');
+                const userWalletSectionEl = document.getElementById('userWalletSection');
+                if (userMBCWalletEl) userMBCWalletEl.textContent = userInfo.wonpaywallet;
+                if (userWalletSectionEl) userWalletSectionEl.style.display = 'block';
             }
             
             // Show payment container and hide order form
-            document.getElementById('orderForm').style.display = 'none';
-            document.getElementById('userInfo').style.display = 'none';
-            document.getElementById('paymentContainer').style.display = 'block';
+            const orderForm = document.getElementById('orderForm');
+            const userInfoEl = document.getElementById('userInfo');
+            const paymentContainer = document.getElementById('paymentContainer');
+            
+            if (orderForm) orderForm.style.display = 'none';
+            if (userInfoEl) userInfoEl.style.display = 'none';
+            if (paymentContainer) paymentContainer.style.display = 'block';
             
             // Reset verification state
             verificationState.step1Complete = false;
@@ -855,12 +1027,19 @@ function createOrder() {
             verificationState.amount = 0;
             
             // Reset UI elements
-            document.getElementById('step1Circle').className = 'step-circle';
-            document.getElementById('step2Circle').className = 'step-circle';
-            document.getElementById('step3Circle').className = 'step-circle';
-            document.getElementById('step1Waiting').style.display = 'none';
-            document.getElementById('step2Waiting').style.display = 'none';
-            document.getElementById('transactionDetails').style.display = 'none';
+            const step1Circle = document.getElementById('step1Circle');
+            const step2Circle = document.getElementById('step2Circle');
+            const step3Circle = document.getElementById('step3Circle');
+            const step1Waiting = document.getElementById('step1Waiting');
+            const step2Waiting = document.getElementById('step2Waiting');
+            const transactionDetails = document.getElementById('transactionDetails');
+            
+            if (step1Circle) step1Circle.className = 'step-circle';
+            if (step2Circle) step2Circle.className = 'step-circle';
+            if (step3Circle) step3Circle.className = 'step-circle';
+            if (step1Waiting) step1Waiting.style.display = 'none';
+            if (step2Waiting) step2Waiting.style.display = 'none';
+            if (transactionDetails) transactionDetails.style.display = 'none';
             
             // Start countdown - 15 minutes
             startCountdown();
@@ -871,9 +1050,12 @@ function createOrder() {
             
         } else if (data.queueStatus) {
             // If there's an active payment in queue
-            document.getElementById('queueMessage').style.display = 'block';
-            document.getElementById('queueInfo').style.display = 'block';
-            submitBtn.disabled = true;
+            const queueMessage = document.getElementById('queueMessage');
+            const queueInfo = document.getElementById('queueInfo');
+            
+            if (queueMessage) queueMessage.style.display = 'block';
+            if (queueInfo) queueInfo.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
             
             if (data.expiryTime) {
                 startQueueTimer(data.expiryTime);
@@ -891,8 +1073,10 @@ function createOrder() {
     .catch(error => {
         logDebug("Error creating order: " + error.message);
         console.error('Error creating order:', error);
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Buat Pembayaran';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Buat Pembayaran';
+        }
         showNotification('Terjadi kesalahan. Silakan coba lagi.');
     });
 }
@@ -901,13 +1085,13 @@ function createOrder() {
 function startCountdown() {
     let timeLeft = 1500; // 15 minutes
     const countdownElement = document.getElementById('countdown');
-    countdownElement.textContent = timeLeft;
+    if (countdownElement) countdownElement.textContent = timeLeft;
     
     logDebug("Starting payment countdown: " + timeLeft + " seconds");
     
     countdownInterval = setInterval(function() {
         timeLeft--;
-        countdownElement.textContent = timeLeft;
+        if (countdownElement) countdownElement.textContent = timeLeft;
         
         if (timeLeft <= 0) {
             logDebug("Payment countdown expired");
@@ -962,14 +1146,17 @@ function checkPaymentStatus() {
             if (data.step1Complete && !verificationState.step1Complete) {
                 logDebug("Step 1 complete, transaction detected");
                 verificationState.step1Complete = true;
-                document.getElementById('step1Circle').classList.add('complete');
+                const step1Circle = document.getElementById('step1Circle');
+                if (step1Circle) step1Circle.classList.add('complete');
                 
                 // Save txid if available
                 if (data.txid) {
                     logDebug("Transaction ID found: " + data.txid);
                     verificationState.txid = data.txid;
-                    document.getElementById('transactionId').textContent = data.txid;
-                    document.getElementById('transactionDetails').style.display = 'block';
+                    const transactionId = document.getElementById('transactionId');
+                    const transactionDetails = document.getElementById('transactionDetails');
+                    if (transactionId) transactionId.textContent = data.txid;
+                    if (transactionDetails) transactionDetails.style.display = 'block';
                     
                     // Start the 7-minute wait before proceeding to step 2
                     startStep1Timer();
@@ -989,17 +1176,25 @@ function checkPaymentStatus() {
                     window.paymentInProgress = false;
                     
                     // Complete all steps in the UI
-                    document.getElementById('step1Circle').classList.add('complete');
-                    document.getElementById('step2Circle').classList.add('complete');
-                    document.getElementById('step3Circle').classList.add('complete');
+                    const step1Circle = document.getElementById('step1Circle');
+                    const step2Circle = document.getElementById('step2Circle');
+                    const step3Circle = document.getElementById('step3Circle');
+                    
+                    if (step1Circle) step1Circle.classList.add('complete');
+                    if (step2Circle) step2Circle.classList.add('complete');
+                    if (step3Circle) step3Circle.classList.add('complete');
                     
                     displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount ? data.amount.toFixed(8) : 0} MBC`);
                     
                     // Show transaction details
                     if (data.txid) {
-                        document.getElementById('successTxId').textContent = data.txid;
-                        document.getElementById('successAmount').textContent = data.amount ? data.amount.toFixed(8) : 0;
-                        document.getElementById('successDetails').style.display = 'block';
+                        const successTxId = document.getElementById('successTxId');
+                        const successAmount = document.getElementById('successAmount');
+                        const successDetails = document.getElementById('successDetails');
+                        
+                        if (successTxId) successTxId.textContent = data.txid;
+                        if (successAmount) successAmount.textContent = data.amount ? data.amount.toFixed(8) : 0;
+                        if (successDetails) successDetails.style.display = 'block';
                     }
                 } else if (data.status === 'failed') {
                     logDebug("Payment failed");
@@ -1039,7 +1234,8 @@ function checkStep2() {
             if (data.step2Complete) {
                 logDebug("Step 2 complete, transaction confirmed in history");
                 verificationState.step2Complete = true;
-                document.getElementById('step2Circle').classList.add('complete');
+                const step2Circle = document.getElementById('step2Circle');
+                if (step2Circle) step2Circle.classList.add('complete');
                 
                 // Start the 1-minute wait before proceeding to step 3
                 startStep2Timer();
@@ -1076,11 +1272,13 @@ function checkStep3() {
             if (data.step3Complete) {
                 logDebug("Step 3 complete, transaction verified with amount: " + data.amount);
                 verificationState.step3Complete = true;
-                document.getElementById('step3Circle').classList.add('complete');
+                const step3Circle = document.getElementById('step3Circle');
+                if (step3Circle) step3Circle.classList.add('complete');
                 
                 // Now we have the verified amount from Step 3
                 verificationState.amount = data.amount;
-                document.getElementById('transactionAmount').textContent = data.amount.toFixed(8);
+                const transactionAmount = document.getElementById('transactionAmount');
+                if (transactionAmount) transactionAmount.textContent = data.amount.toFixed(8);
                 
                 // Stop all timers
                 clearInterval(countdownInterval);
@@ -1093,9 +1291,13 @@ function checkStep3() {
                 displayPaymentStatus('success', `Pembayaran berhasil! Jumlah: ${data.amount.toFixed(8)} MBC`);
                 
                 // Show transaction details
-                document.getElementById('successTxId').textContent = data.txid;
-                document.getElementById('successAmount').textContent = data.amount.toFixed(8);
-                document.getElementById('successDetails').style.display = 'block';
+                const successTxId = document.getElementById('successTxId');
+                const successAmount = document.getElementById('successAmount');
+                const successDetails = document.getElementById('successDetails');
+                
+                if (successTxId) successTxId.textContent = data.txid;
+                if (successAmount) successAmount.textContent = data.amount.toFixed(8);
+                if (successDetails) successDetails.style.display = 'block';
             } else {
                 logDebug("Step 3 not complete yet, checking again in 5 seconds");
                 // If Step 3 not complete, try again in a few seconds
@@ -1114,12 +1316,15 @@ function checkStep3() {
 function startStep1Timer() {
     clearInterval(step1TimerInterval);
     
-    document.getElementById('step1Circle').classList.add('processing');
-    document.getElementById('step1Waiting').style.display = 'block';
+    const step1Circle = document.getElementById('step1Circle');
+    const step1Waiting = document.getElementById('step1Waiting');
+    
+    if (step1Circle) step1Circle.classList.add('processing');
+    if (step1Waiting) step1Waiting.style.display = 'block';
     
     let timeLeft = 7 * 60; // 7 minutes in seconds
     const timerElement = document.getElementById('step1Timer');
-    timerElement.textContent = formatTime(timeLeft);
+    if (timerElement) timerElement.textContent = formatTime(timeLeft);
     
     verificationState.step1Waiting = true;
     
@@ -1127,13 +1332,13 @@ function startStep1Timer() {
     
     step1TimerInterval = setInterval(function() {
         timeLeft--;
-        timerElement.textContent = formatTime(timeLeft);
+        if (timerElement) timerElement.textContent = formatTime(timeLeft);
         
         if (timeLeft <= 0) {
             logDebug("Step 1 waiting period completed");
             clearInterval(step1TimerInterval);
-            document.getElementById('step1Circle').classList.remove('processing');
-            document.getElementById('step1Waiting').style.display = 'none';
+            if (step1Circle) step1Circle.classList.remove('processing');
+            if (step1Waiting) step1Waiting.style.display = 'none';
             
             verificationState.step1Waiting = false;
             
@@ -1147,12 +1352,15 @@ function startStep1Timer() {
 function startStep2Timer() {
     clearInterval(step2TimerInterval);
     
-    document.getElementById('step2Circle').classList.add('processing');
-    document.getElementById('step2Waiting').style.display = 'block';
+    const step2Circle = document.getElementById('step2Circle');
+    const step2Waiting = document.getElementById('step2Waiting');
+    
+    if (step2Circle) step2Circle.classList.add('processing');
+    if (step2Waiting) step2Waiting.style.display = 'block';
     
     let timeLeft = 1 * 60; // 1 minute in seconds
     const timerElement = document.getElementById('step2Timer');
-    timerElement.textContent = formatTime(timeLeft);
+    if (timerElement) timerElement.textContent = formatTime(timeLeft);
     
     verificationState.step2Waiting = true;
     
@@ -1160,13 +1368,13 @@ function startStep2Timer() {
     
     step2TimerInterval = setInterval(function() {
         timeLeft--;
-        timerElement.textContent = formatTime(timeLeft);
+        if (timerElement) timerElement.textContent = formatTime(timeLeft);
         
         if (timeLeft <= 0) {
             logDebug("Step 2 waiting period completed");
             clearInterval(step2TimerInterval);
-            document.getElementById('step2Circle').classList.remove('processing');
-            document.getElementById('step2Waiting').style.display = 'none';
+            if (step2Circle) step2Circle.classList.remove('processing');
+            if (step2Waiting) step2Waiting.style.display = 'none';
             
             verificationState.step2Waiting = false;
             
@@ -1190,20 +1398,24 @@ function displayPaymentStatus(status, message) {
     clearInterval(step2TimerInterval);
     
     // Hide payment container
-    document.getElementById('paymentContainer').style.display = 'none';
+    const paymentContainer = document.getElementById('paymentContainer');
+    if (paymentContainer) paymentContainer.style.display = 'none';
     
     // Update status message
     const statusElement = document.getElementById('paymentStatus');
-    statusElement.textContent = message;
-    
-    if (status === 'success') {
-        statusElement.className = 'status-message success';
-    } else {
-        statusElement.className = 'status-message error';
+    if (statusElement) {
+        statusElement.textContent = message;
+        
+        if (status === 'success') {
+            statusElement.className = 'status-message success';
+        } else {
+            statusElement.className = 'status-message error';
+        }
     }
     
     // Show status container
-    document.getElementById('statusContainer').style.display = 'block';
+    const statusContainer = document.getElementById('statusContainer');
+    if (statusContainer) statusContainer.style.display = 'block';
 }
 
 // Reset form function
@@ -1232,19 +1444,32 @@ function resetForm() {
     clearInterval(step2TimerInterval);
     
     // Reset UI
-    document.getElementById('statusContainer').style.display = 'none';
-    document.getElementById('paymentContainer').style.display = 'none';
-    document.getElementById('orderForm').style.display = 'block';
-    document.getElementById('userInfo').style.display = 'block';
-    document.getElementById('userWalletSection').style.display = 'none';
+    const statusContainer = document.getElementById('statusContainer');
+    const paymentContainer = document.getElementById('paymentContainer');
+    const orderForm = document.getElementById('orderForm');
+    const userInfoEl = document.getElementById('userInfo');
+    const userWalletSection = document.getElementById('userWalletSection');
+    
+    if (statusContainer) statusContainer.style.display = 'none';
+    if (paymentContainer) paymentContainer.style.display = 'none';
+    if (orderForm) orderForm.style.display = 'block';
+    if (userInfoEl) userInfoEl.style.display = 'block';
+    if (userWalletSection) userWalletSection.style.display = 'none';
     
     // Reset verification steps
-    document.getElementById('step1Circle').classList.remove('complete', 'processing');
-    document.getElementById('step2Circle').classList.remove('complete', 'processing');
-    document.getElementById('step3Circle').classList.remove('complete', 'processing');
-    document.getElementById('step1Waiting').style.display = 'none';
-    document.getElementById('step2Waiting').style.display = 'none';
-    document.getElementById('transactionDetails').style.display = 'none';
+    const step1Circle = document.getElementById('step1Circle');
+    const step2Circle = document.getElementById('step2Circle');
+    const step3Circle = document.getElementById('step3Circle');
+    const step1Waiting = document.getElementById('step1Waiting');
+    const step2Waiting = document.getElementById('step2Waiting');
+    const transactionDetails = document.getElementById('transactionDetails');
+    
+    if (step1Circle) step1Circle.classList.remove('complete', 'processing');
+    if (step2Circle) step2Circle.classList.remove('complete', 'processing');
+    if (step3Circle) step3Circle.classList.remove('complete', 'processing');
+    if (step1Waiting) step1Waiting.style.display = 'none';
+    if (step2Waiting) step2Waiting.style.display = 'none';
+    if (transactionDetails) transactionDetails.style.display = 'none';
     
     // Check queue status
     checkQueueStatus();

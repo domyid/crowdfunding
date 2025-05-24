@@ -487,6 +487,44 @@ function showRefreshWarningModal() {
     document.getElementById('refreshWarningModal').style.display = 'block';
 }
 
+// Function to validate user data more thoroughly
+function validateUserData(data) {
+    console.log("=== VALIDATING USER DATA ===");
+    console.log("Raw data received:", data);
+    
+    const validationResult = {
+        isValid: true,
+        missingFields: [],
+        issues: []
+    };
+    
+    // Check name
+    if (!data.name || data.name === "N/A" || data.name.trim() === "" || data.name === null || data.name === undefined) {
+        validationResult.missingFields.push("Nama");
+        validationResult.issues.push(`Name issue: value='${data.name}', type=${typeof data.name}`);
+        validationResult.isValid = false;
+    }
+    
+    // Check phone number
+    if (!data.phoneNumber || data.phoneNumber === "N/A" || data.phoneNumber.trim() === "" || data.phoneNumber === null || data.phoneNumber === undefined) {
+        validationResult.missingFields.push("Nomor HP");
+        validationResult.issues.push(`Phone issue: value='${data.phoneNumber}', type=${typeof data.phoneNumber}`);
+        validationResult.isValid = false;
+    }
+    
+    // Check NPM
+    if (!data.npm || data.npm === "N/A" || data.npm.trim() === "" || data.npm === null || data.npm === undefined) {
+        validationResult.missingFields.push("NPM");
+        validationResult.issues.push(`NPM issue: value='${data.npm}', type=${typeof data.npm}`);
+        validationResult.isValid = false;
+    }
+    
+    console.log("Validation result:", validationResult);
+    console.log("=== END VALIDATION ===");
+    
+    return validationResult;
+}
+
 // Fungsi untuk mengambil elemen DOM
 function getElement(id) {
     return document.getElementById(id);
@@ -540,72 +578,145 @@ function formatDate(dateStr) {
 
 // Get user info from token
 function getUserInfo() {
+    console.log("=== STARTING getUserInfo ===");
+    
     fetch(`${API_URL}/api/crowdfunding/userinfo`, {
         method: 'GET',
         headers: {
-            'login': getCookie("login")  // Use 'login' not 'Authorization'
+            'login': getCookie("login")
         }
     })
     .then(response => {
+        console.log("Response status:", response.status);
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
-        console.log("User info received:", data);
+        console.log("=== RAW API RESPONSE ===");
+        console.log("Full response:", JSON.stringify(data, null, 2));
+        console.log("========================");
         
-        // Check for missing required fields
-        const missingFields = [];
-        if (!data.name || data.name === "N/A") missingFields.push("Nama");
-        if (!data.phoneNumber || data.phoneNumber === "N/A") missingFields.push("Nomor HP");
-        if (!data.npm || data.npm === "N/A") missingFields.push("NPM");
+        // Validate the data
+        const validation = validateUserData(data);
         
-        // If missing required fields, show notification and disable payment
-        if (missingFields.length > 0) {
-            showErrorNotification("Informasi pengguna tidak lengkap. Silakan lengkapi data: " + missingFields.join(", "));
-            document.getElementById('submitBtn').disabled = true;
+        if (!validation.isValid) {
+            console.log("=== VALIDATION FAILED ===");
+            console.log("Missing fields:", validation.missingFields);
+            console.log("Issues:", validation.issues);
             
-            // Update UI with warning
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+            
+            showErrorNotification("Data tidak lengkap: " + validation.missingFields.join(", "));
+            
+            // Show detailed error UI
             const userInfoElement = document.getElementById('userInfo');
             userInfoElement.innerHTML = `
-                <div style="background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                    <p><strong>⚠️ Perhatian:</strong> Data Anda belum lengkap. Silakan lengkapi data berikut:</p>
-                    <ul style="margin-top: 5px; padding-left: 20px;">
-                        ${missingFields.map(field => `<li>${field}</li>`).join('')}
+                <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 2px solid #ffc107;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 24px; margin-right: 10px;">⚠️</span>
+                        <h4 style="margin: 0; color: #856404;">Data Pengguna Tidak Lengkap</h4>
+                    </div>
+                    
+                    <p><strong>Data yang harus dilengkapi:</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        ${validation.missingFields.map(field => `<li><strong>${field}</strong></li>`).join('')}
                     </ul>
-                    <p style="margin-top: 10px; font-size: 14px;">Silakan lengkapi profil Anda di <a href="https://do.my.id/profile" style="color: #856404; font-weight: bold;">halaman profil</a> sebelum melakukan pembayaran.</p>
+                    
+                    <div style="background-color: rgba(255, 193, 7, 0.2); padding: 10px; border-radius: 5px; margin-top: 15px;">
+                        <p style="margin: 0; font-weight: bold;">🔧 Cara Mengatasi:</p>
+                        <ol style="margin: 10px 0; padding-left: 20px;">
+                            <li>Klik tombol di bawah untuk ke halaman profil</li>
+                            <li>Lengkapi semua data yang diminta</li>
+                            <li>Simpan perubahan</li>
+                            <li>Kembali ke halaman ini (refresh jika perlu)</li>
+                        </ol>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <a href="https://do.my.id/profile" target="_blank" style="display: inline-block; background-color: #ffc107; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                                📝 Lengkapi Profil Sekarang
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; border-left: 4px solid #6c757d;">
+                        <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                            <strong>Debug Info:</strong> ${validation.issues.join('; ')}
+                        </p>
+                    </div>
                 </div>
             `;
             return;
         }
         
-        // Display user info if complete
+        console.log("=== VALIDATION PASSED ===");
+        
+        // Store user info
         userInfo = {
-            name: data.name || "N/A",
-            phoneNumber: data.phoneNumber || "N/A",
-            npm: data.npm || "N/A"
+            name: data.name,
+            phoneNumber: data.phoneNumber,
+            npm: data.npm
         };
         
-        // Update UI with user info
+        console.log("Stored userInfo:", userInfo);
+        
+        // Enable submit button
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+        
+        // Show success UI
         const userInfoElement = document.getElementById('userInfo');
         userInfoElement.innerHTML = `
-            <p><strong>Nama:</strong> ${userInfo.name}</p>
-            <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
-            <p><strong>NPM:</strong> ${userInfo.npm}</p>
+            <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 2px solid #28a745;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 24px; margin-right: 10px;">✅</span>
+                    <h4 style="margin: 0; color: #155724;">Data Pengguna Lengkap</h4>
+                </div>
+                <div style="background-color: rgba(40, 167, 69, 0.1); padding: 10px; border-radius: 5px;">
+                    <p><strong>Nama:</strong> ${userInfo.name}</p>
+                    <p><strong>No. HP:</strong> ${userInfo.phoneNumber}</p>
+                    <p style="margin-bottom: 0;"><strong>NPM:</strong> ${userInfo.npm}</p>
+                </div>
+            </div>
         `;
+        
+        console.log("=== getUserInfo COMPLETED SUCCESSFULLY ===");
     })
     .catch(error => {
-        console.error('Error getting user info:', error);
+        console.error('=== ERROR in getUserInfo ===');
+        console.error('Error details:', error);
         
-        showErrorNotification("Gagal mendapatkan informasi pengguna. Silakan coba lagi atau login ulang.");
-        document.getElementById('submitBtn').disabled = true;
+        // Disable submit button
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+        
+        showErrorNotification("Gagal mendapatkan informasi pengguna: " + error.message);
         
         const userInfoElement = document.getElementById('userInfo');
         userInfoElement.innerHTML = `
-            <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px;">
-                <p><strong>❌ Error:</strong> Gagal mendapatkan informasi pengguna.</p>
-                <p>Silakan <a href="https://do.my.id/signin" style="color: #721c24; font-weight: bold;">login ulang</a> untuk melanjutkan.</p>
+            <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; border: 2px solid #dc3545;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 24px; margin-right: 10px;">❌</span>
+                    <h4 style="margin: 0; color: #721c24;">Error Mengambil Data</h4>
+                </div>
+                <p>Gagal mendapatkan informasi pengguna dari server.</p>
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="https://do.my.id/signin" style="display: inline-block; background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        🔐 Login Ulang
+                    </a>
+                </div>
             </div>
         `;
     });
@@ -622,23 +733,33 @@ function getCookie(name) {
 // Fetch payment statistics
 function fetchPaymentStats() {
     const refreshBtn = getElement('refreshStatsBtn');
-    refreshBtn.disabled = true;
-    refreshBtn.innerHTML = '<div class="loading"></div> Memperbarui...';
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<div class="loading"></div> Memperbarui...';
+    }
     
     fetch(`${API_URL}/api/crowdfunding/totals`)
         .then(response => response.json())
         .then(data => {
-            getElement('totalAmount').textContent = `Rp ${formatCurrency(data.totalQRISAmount)}`;
-            getElement('totalCount').textContent = formatCurrency(data.QRISCount);
-            getElement('lastUpdated').textContent = formatDate(data.lastUpdated);
+            const totalAmountEl = getElement('totalAmount');
+            const totalCountEl = getElement('totalCount');
+            const lastUpdatedEl = getElement('lastUpdated');
             
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = 'Refresh Statistik';
+            if (totalAmountEl) totalAmountEl.textContent = `Rp ${formatCurrency(data.totalQRISAmount)}`;
+            if (totalCountEl) totalCountEl.textContent = formatCurrency(data.QRISCount);
+            if (lastUpdatedEl) lastUpdatedEl.textContent = formatDate(data.lastUpdated);
+            
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = 'Refresh Statistik';
+            }
         })
         .catch(error => {
             console.error('Error fetching payment stats:', error);
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = 'Refresh Statistik';
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = 'Refresh Statistik';
+            }
             showNotification('Gagal memuat data statistik');
         });
 }
@@ -646,25 +767,31 @@ function fetchPaymentStats() {
 // Fungsi untuk menampilkan notifikasi popup
 function showNotification(message) {
     const notification = getElement('notification');
-    notification.textContent = message;
-    notification.classList.add('show');
-    
-    setTimeout(function() {
-        notification.classList.remove('show');
-    }, 5000);
+    if (notification) {
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(function() {
+            notification.classList.remove('show');
+        }, 5000);
+    }
 }
 
 // Custom error notification function
 function showErrorNotification(message) {
     const notification = document.getElementById('notification');
-    notification.textContent = message;
-    notification.style.backgroundColor = "#f8d7da";
-    notification.style.color = "#721c24";
-    notification.classList.add('show');
-    
-    setTimeout(function() {
-        notification.classList.remove('show');
-    }, 8000); // Show for longer time (8 seconds)
+    if (notification) {
+        notification.textContent = message;
+        notification.style.backgroundColor = "#f8d7da";
+        notification.style.color = "#721c24";
+        notification.classList.add('show');
+        
+        setTimeout(function() {
+            notification.classList.remove('show');
+            notification.style.backgroundColor = "";
+            notification.style.color = "";
+        }, 8000); // Show for longer time (8 seconds)
+    }
 }
 
 // Format waktu dari detik ke MM:SS
@@ -696,13 +823,17 @@ function startQueueTimer(expiryTimeStr) {
             clearInterval(queueTimerInterval);
             
             // Force enable the payment button when timer expires
-            getElement('queueInfo').style.display = 'none';
-            getElement('queueMessage').style.display = 'none';
-            getElement('submitBtn').disabled = false;
+            const queueInfo = getElement('queueInfo');
+            const queueMessage = getElement('queueMessage');
+            const submitBtn = getElement('submitBtn');
+            
+            if (queueInfo) queueInfo.style.display = 'none';
+            if (queueMessage) queueMessage.style.display = 'none';
+            if (submitBtn) submitBtn.disabled = false;
             
             checkQueueStatus(); // Periksa ulang status antrian setelah waktu habis
         } else {
-            queueTimerElement.textContent = formatTime(timeLeft);
+            if (queueTimerElement) queueTimerElement.textContent = formatTime(timeLeft);
         }
     }, 1000);
 }
@@ -721,9 +852,13 @@ function checkQueueStatus() {
             
             if (data.success && data.isProcessing) {
                 // Jika ada pembayaran berlangsung, tampilkan info antrian
-                getElement('queueInfo').style.display = 'block';
-                getElement('queueMessage').style.display = 'block';
-                getElement('submitBtn').disabled = true;
+                const queueInfo = getElement('queueInfo');
+                const queueMessage = getElement('queueMessage');
+                const submitBtn = getElement('submitBtn');
+                
+                if (queueInfo) queueInfo.style.display = 'block';
+                if (queueMessage) queueMessage.style.display = 'block';
+                if (submitBtn) submitBtn.disabled = true;
                 
                 // Mulai hitung mundur antrian
                 if (data.expiryTime) {
@@ -734,9 +869,15 @@ function checkQueueStatus() {
                 setTimeout(checkQueueStatus, 5000);
             } else {
                 // Jika tidak ada antrian, sembunyikan pesan dan aktifkan form
-                getElement('queueInfo').style.display = 'none';
-                getElement('queueMessage').style.display = 'none';
-                getElement('submitBtn').disabled = false;
+                const queueInfo = getElement('queueInfo');
+                const queueMessage = getElement('queueMessage');
+                const submitBtn = getElement('submitBtn');
+                
+                if (queueInfo) queueInfo.style.display = 'none';
+                if (queueMessage) queueMessage.style.display = 'none';
+                if (submitBtn && userInfo.name && userInfo.phoneNumber && userInfo.npm) {
+                    submitBtn.disabled = false;
+                }
                 clearInterval(queueTimerInterval);
             }
         })
@@ -749,6 +890,16 @@ function checkQueueStatus() {
 
 // Fungsi untuk membuat order
 function createOrder() {
+    console.log("=== CREATING ORDER ===");
+    console.log("Current userInfo:", userInfo);
+    
+    // Double-check user data before creating order
+    if (!userInfo.name || !userInfo.phoneNumber || !userInfo.npm) {
+        console.log("=== ORDER CREATION BLOCKED - INCOMPLETE DATA ===");
+        showErrorNotification("Data pengguna tidak lengkap. Silakan refresh halaman dan lengkapi profil Anda.");
+        return;
+    }
+    
     const amount = parseFloat(getElement('amount').value.trim());
     
     // Validasi input
@@ -756,6 +907,9 @@ function createOrder() {
         alert('Silakan masukkan jumlah pembayaran yang valid');
         return;
     }
+    
+    console.log("=== ORDER VALIDATION PASSED ===");
+    console.log("Amount:", amount);
     
     // Tampilkan loading state
     getElement('submitBtn').disabled = true;
