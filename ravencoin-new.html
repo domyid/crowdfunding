@@ -367,10 +367,27 @@
             margin-left: 10px;
             animation: glow 2s infinite;
         }
-        
+
         @keyframes glow {
             0%, 100% { box-shadow: 0 0 5px rgba(255, 71, 87, 0.5); }
             50% { box-shadow: 0 0 20px rgba(255, 71, 87, 0.8); }
+        }
+
+        .user-wallet-section {
+            background: #e8f5e8;
+            border: 1px solid #4CAF50;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .user-wallet {
+            font-family: 'Courier New', monospace;
+            background: rgba(255,255,255,0.8);
+            padding: 8px;
+            border-radius: 4px;
+            word-break: break-all;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
@@ -398,6 +415,12 @@
                 </div>
             </div>
             
+            <!-- User Information -->
+            <div id="userInfo" class="payment-info">
+                <h3>👤 Memuat Data Pengguna...</h3>
+                <p>Sedang mengambil informasi pengguna...</p>
+            </div>
+
             <!-- Payment Information -->
             <div class="payment-info">
                 <h3>📋 Informasi Pembayaran</h3>
@@ -405,6 +428,13 @@
                     <span class="info-label">Order ID:</span>
                     <span class="info-value" id="orderIdDisplay">-</span>
                 </div>
+
+                <!-- QR Code Section -->
+                <div style="text-align: center; margin: 20px 0;">
+                    <p><strong>Scan QR Code untuk pembayaran:</strong></p>
+                    <img id="ravencoinQR" src="ravencoin.png" alt="Ravencoin QR Code" style="max-width: 200px; height: auto; border: 2px solid #4CAF50; border-radius: 10px; margin: 10px 0;">
+                </div>
+
                 <div class="info-row">
                     <span class="info-label">Alamat Wallet Tujuan:</span>
                     <div>
@@ -497,20 +527,198 @@
             confirmations: 0
         };
         
+        // Global user info
+        let userInfo = {};
+
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             // Get order ID from URL or create new one
             const urlParams = new URLSearchParams(window.location.search);
             currentOrderId = urlParams.get('orderId') || generateOrderId();
-            
+
             document.getElementById('orderIdDisplay').textContent = currentOrderId;
-            
+
+            // Get user info first
+            getUserInfo();
+
             // Load saved state if exists
             loadSavedState();
         });
+
+        // Helper function to get cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
         
         function generateOrderId() {
             return 'RVN-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Get user info from token
+        function getUserInfo() {
+            console.log("Getting user info...");
+
+            fetch(`${API_URL}/api/crowdfunding/userinfo`, {
+                method: 'GET',
+                headers: {
+                    'login': getCookie("login")
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("User info received:", data);
+
+                // Validate the data
+                const validation = validateUserData(data);
+
+                if (!validation.isValid) {
+                    showUserDataError(validation);
+                } else {
+                    // Store user info globally
+                    userInfo = data;
+                    showUserDataSuccess(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error getting user info:', error);
+                showUserDataError({
+                    isValid: false,
+                    missingFields: ['Connection Error'],
+                    issues: [error.message]
+                });
+            });
+        }
+
+        // Validate user data
+        function validateUserData(data) {
+            const validationResult = {
+                isValid: true,
+                missingFields: [],
+                issues: []
+            };
+
+            // Check Name
+            if (!data.name || data.name.trim() === "" || data.name === null || data.name === undefined) {
+                validationResult.missingFields.push("Name");
+                validationResult.isValid = false;
+            }
+
+            // Check Phone Number
+            if (!data.phoneNumber || data.phoneNumber.trim() === "" || data.phoneNumber === null || data.phoneNumber === undefined) {
+                validationResult.missingFields.push("Phone Number");
+                validationResult.isValid = false;
+            }
+
+            // Check NPM
+            if (!data.npm || data.npm.trim() === "" || data.npm === null || data.npm === undefined) {
+                validationResult.missingFields.push("NPM");
+                validationResult.isValid = false;
+            }
+
+            // Check RVN Wallet - strict validation
+            if (!data.rvnwallet || data.rvnwallet === "N/A" || data.rvnwallet.trim() === "" || data.rvnwallet === null || data.rvnwallet === undefined) {
+                validationResult.missingFields.push("RVN Wallet");
+                validationResult.isValid = false;
+            } else {
+                // Additional validation for RVN wallet format
+                const rvnWallet = data.rvnwallet.trim();
+                if (!rvnWallet.startsWith('R') || rvnWallet.length !== 34) {
+                    validationResult.missingFields.push("RVN Wallet (Format Invalid)");
+                    validationResult.isValid = false;
+                }
+            }
+
+            return validationResult;
+        }
+
+        // Show user data success
+        function showUserDataSuccess(data) {
+            const userInfoElement = document.getElementById('userInfo');
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `
+                    <div style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #28a745;">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <span style="font-size: 24px; margin-right: 10px;">✅</span>
+                            <h3 style="margin: 0; color: #155724;">Data Pengguna Lengkap</h3>
+                        </div>
+                        <div style="background-color: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px;">
+                            <p style="margin: 8px 0;"><strong>Nama:</strong> ${data.name}</p>
+                            <p style="margin: 8px 0;"><strong>No. HP:</strong> ${data.phoneNumber}</p>
+                            <p style="margin: 8px 0;"><strong>NPM:</strong> ${data.npm}</p>
+                            <p style="margin: 8px 0;"><strong>RVN Wallet:</strong> <span style="font-family: 'Courier New', monospace; background: rgba(255,255,255,0.7); padding: 2px 6px; border-radius: 4px;">${data.rvnwallet}</span></p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Enable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            }
+        }
+
+        // Show user data error
+        function showUserDataError(validation) {
+            const userInfoElement = document.getElementById('userInfo');
+            const rvnWalletMissing = validation.missingFields.includes("RVN Wallet") || validation.missingFields.includes("RVN Wallet (Format Invalid)");
+
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `
+                    <div style="background-color: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #ffc107;">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <span style="font-size: 24px; margin-right: 10px;">⚠️</span>
+                            <h3 style="margin: 0; color: #856404;">Data Pengguna Tidak Lengkap</h3>
+                        </div>
+
+                        <p><strong>Data yang harus dilengkapi:</strong></p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            ${validation.missingFields.map(field => `<li><strong>${field}</strong></li>`).join('')}
+                        </ul>
+
+                        ${rvnWalletMissing ? `
+                            <div style="background-color: rgba(220, 53, 69, 0.1); padding: 10px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #dc3545;">
+                                <p style="margin: 0; font-weight: bold; color: #dc3545;">🔑 RVN Wallet Wajib Diisi!</p>
+                                <p style="margin: 5px 0 0 0; font-size: 14px;">Untuk pembayaran Ravencoin, alamat RVN Wallet adalah wajib dan tidak boleh kosong.</p>
+                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Format: Harus dimulai dengan 'R' dan panjang 34 karakter<br>Contoh: <code>RL2B5W4ABvFRLbnQsmE7SJUw9HKVd68gTH</code></p>
+                            </div>
+                        ` : ''}
+
+                        <div style="background-color: rgba(255, 193, 7, 0.2); padding: 10px; border-radius: 5px; margin-top: 15px;">
+                            <p style="margin: 0; font-weight: bold;">🔧 Cara Mengatasi:</p>
+                            <ol style="margin: 10px 0; padding-left: 20px;">
+                                <li>Klik tombol di bawah untuk ke halaman profil</li>
+                                <li>Lengkapi semua data yang diminta (terutama RVN Wallet)</li>
+                                <li>Simpan perubahan</li>
+                                <li>Kembali ke halaman ini (refresh jika perlu)</li>
+                            </ol>
+                            <div style="text-align: center; margin-top: 15px;">
+                                <a href="https://www.do.my.id/dashboard/#profile/accounts" target="_blank" style="display: inline-block; background-color: #ffc107; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                                    🔧 Lengkapi Data Profil
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+            }
         }
         
         function loadSavedState() {
@@ -546,18 +754,24 @@
         }
         
         function submitTransaction() {
+            // Check if user data is complete
+            if (!userInfo.name || !userInfo.phoneNumber || !userInfo.npm || !userInfo.rvnwallet) {
+                showMessage('Data pengguna tidak lengkap. Silakan refresh halaman dan lengkapi profil Anda.', 'error');
+                return;
+            }
+
             const txid = document.getElementById('txidInput').value.trim();
-            
+
             if (!txid) {
                 showMessage('Silakan masukkan Transaction ID terlebih dahulu!', 'error');
                 return;
             }
-            
+
             if (txid.length !== 64) {
                 showMessage('Transaction ID harus 64 karakter!', 'error');
                 return;
             }
-            
+
             currentTxid = txid;
             saveState();
             startVerificationProcess();
