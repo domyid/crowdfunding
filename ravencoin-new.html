@@ -448,16 +448,70 @@
                 </div>
             </div>
             
-            <!-- Transaction ID Input -->
-            <div class="input-group">
-                <label for="txidInput">🔗 Transaction ID (TXID):</label>
-                <input type="text" id="txidInput" placeholder="Masukkan Transaction ID dari wallet Anda..." />
+            <!-- Order Form (Initial State) -->
+            <div id="orderForm">
+                <button class="btn" id="submitBtn" onclick="createOrder()">
+                    🚀 Buat Pembayaran Ravencoin
+                </button>
+
+                <!-- Queue Message -->
+                <div id="queueMessage" style="display: none;" class="status-message status-warning">
+                    <h4>⏳ Sedang Ada Pembayaran Berlangsung</h4>
+                    <p>Mohon tunggu hingga pembayaran sebelumnya selesai atau kedaluwarsa.</p>
+                    <div id="queueInfo" style="display: none;">
+                        <p><strong>Sisa waktu:</strong> <span id="queueTimer">-</span> detik</p>
+                    </div>
+                </div>
             </div>
-            
-            <!-- Submit Button -->
-            <button class="btn" id="submitBtn" onclick="submitTransaction()">
-                🚀 Mulai Verifikasi Pembayaran
-            </button>
+
+            <!-- Payment Container (Hidden Initially) -->
+            <div id="paymentContainer" style="display: none;">
+                <div class="payment-info">
+                    <h3>💰 Detail Pembayaran</h3>
+                    <div class="info-row">
+                        <span class="info-label">Order ID:</span>
+                        <span class="info-value" id="orderId">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nama:</span>
+                        <span class="info-value" id="customerName">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">No. HP:</span>
+                        <span class="info-value" id="customerPhone">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">NPM:</span>
+                        <span class="info-value" id="customerNPM">-</span>
+                    </div>
+                </div>
+
+                <!-- User Wallet Section -->
+                <div id="userWalletSection" style="display: none;" class="user-wallet-section">
+                    <p><strong>Your RVN Wallet:</strong></p>
+                    <p id="userRVNWallet" class="user-wallet"></p>
+                    <p style="font-size: 12px; color: #666;">Make sure to send payment from this wallet for better tracking.</p>
+                </div>
+
+                <p style="text-align: center; margin: 20px 0; font-weight: bold; color: #ff6b6b;">
+                    JANGAN TINGGALKAN ATAU KELUAR DARI HALAMAN INI DAN JANGAN REFRESH JUGA !!!
+                </p>
+
+                <div class="timer" style="text-align: center; font-size: 1.5em; font-weight: bold; color: #ff6b6b; margin: 20px 0;">
+                    <span id="countdown">1500</span> detik
+                </div>
+
+                <!-- QR Code and Wallet Address -->
+                <div style="text-align: center; margin: 20px 0;">
+                    <img id="ravencoinQR" src="ravencoin.png" alt="Ravencoin QR Code" style="max-width: 200px; height: auto; border: 2px solid #4CAF50; border-radius: 10px;">
+                </div>
+
+                <div class="wallet-address" style="text-align: center; margin: 20px 0;">
+                    <p><strong>Alamat Wallet:</strong></p>
+                    <p id="walletAddress" style="font-family: 'Courier New', monospace; word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 5px;">-</p>
+                    <button class="copy-btn" onclick="copyWalletAddress()">📋 Copy Address</button>
+                </div>
+            </div>
             
             <!-- Status Messages -->
             <div id="statusMessages"></div>
@@ -516,34 +570,90 @@
         const API_URL = "https://asia-southeast2-awangga.cloudfunctions.net/domyid";
         const WALLET_ADDRESS = 'RKJpSmjTq5MPDaBx2ubTx1msVB2uZcKA5j';
         
-        // State management
-        let currentOrderId = null;
-        let currentTxid = null;
+        // State management (following ravencoin.html pattern)
+        let orderId = null;
+        let userInfo = {};
         let verificationState = {
             step1Complete: false,
             step2Complete: false,
             step3Complete: false,
+            txid: null,
             amount: 0,
             confirmations: 0
         };
-        
-        // Global user info
-        let userInfo = {};
 
-        // Initialize page
+        // Intervals for monitoring
+        let checkPaymentStatusInterval = null;
+        let countdownInterval = null;
+        let queueCheckInterval = null;
+
+        // Initialize page (following ravencoin.html pattern)
         document.addEventListener('DOMContentLoaded', function() {
-            // Get order ID from URL or create new one
-            const urlParams = new URLSearchParams(window.location.search);
-            currentOrderId = urlParams.get('orderId') || generateOrderId();
-
-            document.getElementById('orderIdDisplay').textContent = currentOrderId;
-
-            // Get user info first
+            console.log("Page loaded, initializing...");
+            setupRefreshWarning();
             getUserInfo();
-
-            // Load saved state if exists
-            loadSavedState();
+            checkQueueStatus();
         });
+
+        // Setup refresh warning (prevent accidental refresh during payment)
+        function setupRefreshWarning() {
+            window.paymentInProgress = false;
+
+            window.addEventListener('beforeunload', function(e) {
+                if (window.paymentInProgress) {
+                    const confirmationMessage = 'Pembayaran sedang berlangsung. Yakin ingin meninggalkan halaman?';
+                    e.returnValue = confirmationMessage;
+                    return confirmationMessage;
+                }
+            });
+        }
+
+        // Check queue status (same as ravencoin.html)
+        function checkQueueStatus() {
+            console.log("Checking queue status...");
+
+            fetch(`${API_URL}/api/crowdfunding/checkQueue`, {
+                method: 'GET',
+                headers: {
+                    'login': getCookie("login")
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Queue status:", data);
+
+                if (data.isProcessing) {
+                    // Show queue message
+                    const queueMessage = document.getElementById('queueMessage');
+                    const queueInfo = document.getElementById('queueInfo');
+                    const submitBtn = document.getElementById('submitBtn');
+
+                    if (queueMessage) queueMessage.style.display = 'block';
+                    if (queueInfo) queueInfo.style.display = 'block';
+                    if (submitBtn) submitBtn.disabled = true;
+
+                    if (data.expiryTime) {
+                        startQueueTimer(data.expiryTime);
+                    }
+
+                    // Check again in 5 seconds
+                    setTimeout(checkQueueStatus, 5000);
+                } else {
+                    // Queue is free, enable order creation
+                    const queueMessage = document.getElementById('queueMessage');
+                    const submitBtn = document.getElementById('submitBtn');
+
+                    if (queueMessage) queueMessage.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking queue:', error);
+                // On error, assume queue is free
+                const submitBtn = document.getElementById('submitBtn');
+                if (submitBtn) submitBtn.disabled = false;
+            });
+        }
 
         // Helper function to get cookie
         function getCookie(name) {
@@ -553,10 +663,6 @@
             return '';
         }
         
-        function generateOrderId() {
-            return 'RVN-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        }
-
         // Get user info from token
         function getUserInfo() {
             console.log("Getting user info...");
@@ -721,29 +827,7 @@
             }
         }
         
-        function loadSavedState() {
-            const saved = localStorage.getItem('ravencoin_payment_' + currentOrderId);
-            if (saved) {
-                const state = JSON.parse(saved);
-                currentTxid = state.txid;
-                verificationState = state.verificationState;
-                
-                if (currentTxid) {
-                    document.getElementById('txidInput').value = currentTxid;
-                    if (verificationState.step1Complete) {
-                        startVerificationProcess();
-                    }
-                }
-            }
-        }
-        
-        function saveState() {
-            const state = {
-                txid: currentTxid,
-                verificationState: verificationState
-            };
-            localStorage.setItem('ravencoin_payment_' + currentOrderId, JSON.stringify(state));
-        }
+
         
         function copyWalletAddress() {
             navigator.clipboard.writeText(WALLET_ADDRESS).then(() => {
@@ -753,163 +837,329 @@
             });
         }
         
-        function submitTransaction() {
-            // Check if user data is complete
+        // Create order function (following ravencoin.html pattern)
+        function createOrder() {
+            console.log("Creating order...");
+            console.log("Current userInfo:", userInfo);
+
+            // Double-check user data before creating order
             if (!userInfo.name || !userInfo.phoneNumber || !userInfo.npm || !userInfo.rvnwallet) {
-                showMessage('Data pengguna tidak lengkap. Silakan refresh halaman dan lengkapi profil Anda.', 'error');
+                console.log("Order creation blocked - incomplete data");
+                showMessage("Data pengguna tidak lengkap. Silakan refresh halaman dan lengkapi profil Anda.", 'error');
                 return;
             }
 
-            const txid = document.getElementById('txidInput').value.trim();
+            console.log("Order validation passed");
 
-            if (!txid) {
-                showMessage('Silakan masukkan Transaction ID terlebih dahulu!', 'error');
-                return;
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div style="display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 1s linear infinite;"></div> Memproses...';
             }
 
-            if (txid.length !== 64) {
-                showMessage('Transaction ID harus 64 karakter!', 'error');
-                return;
-            }
+            // Send request to server
+            fetch(`${API_URL}/api/crowdfunding/ravencoin/createOrder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'login': getCookie("login")
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Order creation response:", data);
 
-            currentTxid = txid;
-            saveState();
-            startVerificationProcess();
+                // Reset loading state
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Buat Pembayaran Ravencoin';
+                }
+
+                if (data.success) {
+                    // Mark payment as in progress to prevent refresh
+                    window.paymentInProgress = true;
+
+                    // Save order ID
+                    orderId = data.orderId;
+
+                    // Update payment details
+                    updatePaymentDetails(data);
+
+                    // Show payment container and hide order form
+                    showPaymentContainer();
+
+                    // Reset verification state
+                    resetVerificationState();
+
+                    // Start countdown - 15 minutes
+                    startCountdown();
+
+                    console.log("Starting payment status checking");
+                    // Start checking payment status immediately
+                    checkPaymentStatus();
+
+                    // Then set interval for continuous checking
+                    checkPaymentStatusInterval = setInterval(checkPaymentStatus, 3000);
+
+                } else if (data.queueStatus) {
+                    // If there's an active payment in queue
+                    handleQueueStatus(data);
+                } else {
+                    // Show error message
+                    showMessage('Gagal membuat pembayaran: ' + data.message, 'error');
+                    console.log("Payment creation failed:", data.message);
+                }
+            })
+            .catch(error => {
+                console.log("Error creating order:", error.message);
+                console.error('Error creating order:', error);
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Buat Pembayaran Ravencoin';
+                }
+                showMessage('Terjadi kesalahan. Silakan coba lagi.', 'error');
+            });
         }
         
-        function startVerificationProcess() {
+        // Update payment details (following ravencoin.html pattern)
+        function updatePaymentDetails(data) {
+            const orderIdEl = document.getElementById('orderId');
+            const customerNameEl = document.getElementById('customerName');
+            const customerPhoneEl = document.getElementById('customerPhone');
+            const customerNPMEl = document.getElementById('customerNPM');
+            const walletAddressEl = document.getElementById('walletAddress');
+
+            if (orderIdEl) orderIdEl.textContent = data.orderId;
+            if (customerNameEl) customerNameEl.textContent = userInfo.name;
+            if (customerPhoneEl) customerPhoneEl.textContent = userInfo.phoneNumber;
+            if (customerNPMEl) customerNPMEl.textContent = userInfo.npm;
+            if (walletAddressEl) walletAddressEl.textContent = data.walletAddress;
+
+            // Show user wallet if available
+            if (userInfo.rvnwallet) {
+                const userRVNWallet = document.getElementById('userRVNWallet');
+                const userWalletSection = document.getElementById('userWalletSection');
+                if (userRVNWallet) userRVNWallet.textContent = userInfo.rvnwallet;
+                if (userWalletSection) userWalletSection.style.display = 'block';
+            }
+        }
+
+        // Show payment container and hide order form
+        function showPaymentContainer() {
+            const orderForm = document.getElementById('orderForm');
+            const userInfoEl = document.getElementById('userInfo');
+            const paymentContainer = document.getElementById('paymentContainer');
+
+            if (orderForm) orderForm.style.display = 'none';
+            if (userInfoEl) userInfoEl.style.display = 'none';
+            if (paymentContainer) paymentContainer.style.display = 'block';
+
             // Show progress details
             document.getElementById('progressDetails').style.display = 'block';
-            
-            // Disable submit button
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('submitBtn').textContent = '🔄 Memverifikasi...';
-            
-            // Start Step 1
-            checkStep1();
+        }
+
+        // Reset verification state
+        function resetVerificationState() {
+            verificationState.step1Complete = false;
+            verificationState.step2Complete = false;
+            verificationState.step3Complete = false;
+            verificationState.txid = null;
+            verificationState.amount = 0;
+
+            // Reset UI elements
+            const step1Circle = document.getElementById('step1Circle');
+            const step2Circle = document.getElementById('step2Circle');
+            const step3Circle = document.getElementById('step3Circle');
+
+            if (step1Circle) step1Circle.className = 'step-circle';
+            if (step2Circle) step2Circle.className = 'step-circle';
+            if (step3Circle) step3Circle.className = 'step-circle';
+
+            // Reset progress steps
+            for (let i = 1; i <= 3; i++) {
+                updateProgressStep(i, 'pending', getDefaultStepDescription(i));
+            }
+
+            // Hide transaction details
+            const transactionDetails = document.getElementById('transactionDetails');
+            if (transactionDetails) transactionDetails.style.display = 'none';
+        }
+
+        // Start countdown function - 15 minutes (1500 seconds)
+        function startCountdown() {
+            let timeLeft = 1500; // 15 minutes
+            const countdownElement = document.getElementById('countdown');
+            if (countdownElement) countdownElement.textContent = timeLeft;
+
+            console.log("Starting payment countdown:", timeLeft, "seconds");
+
+            countdownInterval = setInterval(function() {
+                timeLeft--;
+                if (countdownElement) countdownElement.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    console.log("Payment countdown expired");
+                    clearInterval(countdownInterval);
+                    clearInterval(checkPaymentStatusInterval);
+
+                    // Payment is no longer in progress
+                    window.paymentInProgress = false;
+
+                    // Show expired payment message
+                    showMessage('Pembayaran kedaluwarsa. Silakan coba lagi.', 'error');
+                }
+            }, 1000);
         }
         
-        function checkStep1() {
-            updateProgressStep(1, 'processing', 'Mengecek keberadaan transaksi...');
-            updateStepIndicator(1, 'processing');
-            
-            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep1/${currentOrderId}?txid=${currentTxid}`)
-                .then(response => response.json())
+        // Check payment status function - using NEW backend system
+        function checkPaymentStatus() {
+            if (!orderId) return;
+
+            // If all verification steps are complete, clear interval and stop checking
+            if (verificationState.step1Complete && verificationState.step2Complete && verificationState.step3Complete) {
+                clearInterval(checkPaymentStatusInterval);
+                return;
+            }
+
+            // If Step 1 is complete but Step 2 is not, check Step 2
+            if (verificationState.step1Complete && !verificationState.step2Complete) {
+                checkStep2();
+                return;
+            }
+
+            // If Step 2 is complete but Step 3 is not, check Step 3
+            if (verificationState.step2Complete && !verificationState.step3Complete) {
+                checkStep3();
+                return;
+            }
+
+            // Check Step 1 (initial transaction detection) - using original endpoint first
+            console.log(`Checking payment status for order ${orderId} (Step 1)`);
+            fetch(`${API_URL}/api/crowdfunding/checkPayment/${orderId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.status === 'success' && data.step1Complete) {
-                        // Step 1 complete
+                    console.log("Payment status response:", data);
+
+                    if (data.step1Complete && data.txid) {
+                        // Step 1 complete - transaction detected
                         verificationState.step1Complete = true;
-                        verificationState.amount = data.amount;
-                        saveState();
-                        
-                        updateProgressStep(1, 'complete', `Transaksi ditemukan! Amount: ${data.amount.toFixed(8)} RVN`);
+                        verificationState.txid = data.txid;
+                        verificationState.amount = data.amount || 0;
+
+                        updateProgressStep(1, 'complete', `Transaksi ditemukan! TXID: ${data.txid.substring(0, 16)}...`);
                         updateStepIndicator(1, 'active');
-                        
-                        showMessage(`✅ Step 1 Complete: Transaksi ditemukan dengan amount ${data.amount.toFixed(8)} RVN`, 'success');
-                        
-                        // Start Step 2
-                        setTimeout(() => checkStep2(), 1000);
+
+                        showMessage(`✅ Step 1 Complete: Transaksi ditemukan dengan TXID ${data.txid.substring(0, 16)}...`, 'success');
+
+                        // Continue to Step 2
+                        checkStep2();
                     } else {
-                        // Step 1 pending
-                        updateProgressStep(1, 'error', 'Transaksi belum ditemukan atau tidak valid');
-                        showMessage('❌ Transaksi belum ditemukan. Pastikan TXID benar dan transaksi sudah dikirim.', 'error');
-                        
-                        // Reset and allow retry
-                        resetVerification();
+                        // Still waiting for transaction
+                        updateProgressStep(1, 'processing', 'Menunggu pembayaran Ravencoin...');
+                        updateStepIndicator(1, 'processing');
                     }
                 })
                 .catch(error => {
-                    console.error('Error in Step 1:', error);
+                    console.error('Error checking payment status:', error);
                     updateProgressStep(1, 'error', 'Error: ' + error.message);
-                    showMessage('❌ Error saat mengecek transaksi: ' + error.message, 'error');
-                    resetVerification();
                 });
         }
 
         function checkStep2() {
+            if (!orderId || !verificationState.txid) return;
+
             updateProgressStep(2, 'processing', 'Mengecek konfirmasi blockchain...');
             updateStepIndicator(2, 'processing');
 
-            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep2New/${currentOrderId}?txid=${currentTxid}`)
+            console.log(`Checking Step 2 for order ${orderId} with txid ${verificationState.txid}`);
+
+            // Use NEW backend system for Step 2
+            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep2New/${orderId}?txid=${verificationState.txid}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Step 2 response:", data);
+
                     if (data.status === 'success' && data.step2Complete) {
                         // Step 2 complete
                         verificationState.step2Complete = true;
                         verificationState.confirmations = data.confirmations;
-                        saveState();
 
                         updateProgressStep(2, 'complete', `Transaksi dikonfirmasi! ${data.confirmations} confirmations`);
                         updateStepIndicator(2, 'active');
 
                         showMessage(`✅ Step 2 Complete: Transaksi dikonfirmasi dengan ${data.confirmations} confirmations`, 'success');
 
-                        // Start Step 3
-                        setTimeout(() => checkStep3(), 1000);
+                        // Continue to Step 3
+                        checkStep3();
                     } else {
                         // Step 2 pending
                         updateProgressStep(2, 'processing', `Menunggu konfirmasi... (${data.confirmations || 0} confirmations)`);
-                        showMessage(`⏳ Menunggu konfirmasi blockchain... (${data.confirmations || 0} confirmations)`, 'info');
-
-                        // Check again in 10 seconds
-                        setTimeout(() => checkStep2(), 10000);
+                        console.log(`Step 2 pending, confirmations: ${data.confirmations || 0}`);
                     }
                 })
                 .catch(error => {
                     console.error('Error in Step 2:', error);
                     updateProgressStep(2, 'error', 'Error: ' + error.message);
-                    showMessage('❌ Error saat mengecek konfirmasi: ' + error.message, 'error');
-
-                    // Retry after delay
-                    setTimeout(() => checkStep2(), 15000);
                 });
         }
 
         function checkStep3() {
+            if (!orderId || !verificationState.txid) return;
+
             updateProgressStep(3, 'processing', 'Verifikasi final dan finalisasi...');
             updateStepIndicator(3, 'processing');
 
-            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep3/${currentOrderId}?txid=${currentTxid}`)
+            console.log(`Checking Step 3 for order ${orderId} with txid ${verificationState.txid}`);
+
+            // Use existing Step 3 endpoint (this one is already working well)
+            fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep3/${orderId}?txid=${verificationState.txid}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Step 3 response:", data);
+
                     if (data.status === 'success' && data.step3Complete) {
                         // Step 3 complete - Payment successful!
                         verificationState.step3Complete = true;
                         verificationState.amount = data.amount || verificationState.amount;
-                        saveState();
 
                         updateProgressStep(3, 'complete', 'Pembayaran berhasil dikonfirmasi!');
                         updateStepIndicator(3, 'active');
+
+                        // Clear intervals
+                        clearInterval(checkPaymentStatusInterval);
+                        clearInterval(countdownInterval);
+
+                        // Payment is no longer in progress
+                        window.paymentInProgress = false;
 
                         showMessage(`🎉 Pembayaran Berhasil! Amount: ${verificationState.amount.toFixed(8)} RVN`, 'success');
 
                         // Show transaction details
                         showTransactionDetails();
 
-                        // Update status
-                        document.getElementById('paymentStatus').textContent = 'Pembayaran Berhasil ✅';
-
-                        // Enable new payment
-                        document.getElementById('submitBtn').disabled = false;
-                        document.getElementById('submitBtn').textContent = '🆕 Pembayaran Baru';
-                        document.getElementById('submitBtn').onclick = () => window.location.reload();
+                        console.log("Payment completed successfully!");
 
                     } else {
                         // Step 3 pending
                         updateProgressStep(3, 'processing', 'Memverifikasi detail transaksi...');
-                        showMessage('🔍 Memverifikasi detail transaksi...', 'info');
-
-                        // Check again in 5 seconds
-                        setTimeout(() => checkStep3(), 5000);
+                        console.log("Step 3 pending, continuing verification...");
                     }
                 })
                 .catch(error => {
                     console.error('Error in Step 3:', error);
                     updateProgressStep(3, 'error', 'Error: ' + error.message);
-                    showMessage('❌ Error saat verifikasi final: ' + error.message, 'error');
-
-                    // Retry after delay
-                    setTimeout(() => checkStep3(), 15000);
                 });
         }
 
@@ -974,38 +1224,77 @@
         }
 
         function showTransactionDetails() {
-            document.getElementById('finalTxid').textContent = currentTxid;
-            document.getElementById('finalAmount').textContent = `${verificationState.amount.toFixed(8)} RVN`;
-            document.getElementById('finalConfirmations').textContent = verificationState.confirmations;
-            document.getElementById('finalStatus').textContent = 'Berhasil ✅';
+            const finalTxid = document.getElementById('finalTxid');
+            const finalAmount = document.getElementById('finalAmount');
+            const finalConfirmations = document.getElementById('finalConfirmations');
+            const finalStatus = document.getElementById('finalStatus');
+            const transactionDetails = document.getElementById('transactionDetails');
 
-            document.getElementById('transactionDetails').style.display = 'block';
+            if (finalTxid) finalTxid.textContent = verificationState.txid;
+            if (finalAmount) finalAmount.textContent = `${verificationState.amount.toFixed(8)} RVN`;
+            if (finalConfirmations) finalConfirmations.textContent = verificationState.confirmations;
+            if (finalStatus) finalStatus.textContent = 'Berhasil ✅';
+            if (transactionDetails) transactionDetails.style.display = 'block';
         }
 
-        function resetVerification() {
-            // Reset state
-            verificationState = {
-                step1Complete: false,
-                step2Complete: false,
-                step3Complete: false,
-                amount: 0,
-                confirmations: 0
+        // Copy wallet address function
+        function copyWalletAddress() {
+            const walletAddress = document.getElementById('walletAddress').textContent;
+            navigator.clipboard.writeText(walletAddress).then(() => {
+                showMessage('Alamat wallet berhasil disalin!', 'success');
+            }).catch(() => {
+                showMessage('Gagal menyalin alamat wallet', 'error');
+            });
+        }
+
+        // Start queue timer
+        function startQueueTimer(expiryTime) {
+            const queueTimer = document.getElementById('queueTimer');
+            if (!queueTimer) return;
+
+            const updateTimer = () => {
+                const now = new Date().getTime();
+                const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
+
+                if (queueTimer) queueTimer.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(queueCheckInterval);
+                    checkQueueStatus(); // Recheck queue status
+                }
             };
 
-            // Reset UI
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('submitBtn').textContent = '🚀 Mulai Verifikasi Pembayaran';
+            updateTimer();
+            queueCheckInterval = setInterval(updateTimer, 1000);
+        }
 
-            // Reset step indicators
-            for (let i = 1; i <= 3; i++) {
-                updateStepIndicator(i, '');
-                updateProgressStep(i, 'pending', getDefaultStepDescription(i));
+        // Handle queue status
+        function handleQueueStatus(data) {
+            const queueMessage = document.getElementById('queueMessage');
+            const queueInfo = document.getElementById('queueInfo');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (queueMessage) queueMessage.style.display = 'block';
+            if (queueInfo) queueInfo.style.display = 'block';
+            if (submitBtn) submitBtn.disabled = true;
+
+            if (data.expiryTime) {
+                startQueueTimer(data.expiryTime);
             }
 
-            // Hide progress details
-            document.getElementById('progressDetails').style.display = 'none';
-            document.getElementById('transactionDetails').style.display = 'none';
+            // Check again in 5 seconds
+            setTimeout(checkQueueStatus, 5000);
         }
+
+        // Add CSS for spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
 
         function getDefaultStepDescription(stepNum) {
             const descriptions = {
