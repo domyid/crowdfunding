@@ -602,19 +602,11 @@ function validateUserData(data) {
         validationResult.isValid = false;
     }
     
-    // Check RVN Wallet - more strict validation
+    // Check RVN Wallet
     if (!data.rvnwallet || data.rvnwallet === "N/A" || data.rvnwallet.trim() === "" || data.rvnwallet === null || data.rvnwallet === undefined) {
         validationResult.missingFields.push("RVN Wallet");
         validationResult.issues.push(`RVN Wallet issue: value='${data.rvnwallet}', type=${typeof data.rvnwallet}`);
         validationResult.isValid = false;
-    } else {
-        // Additional validation for RVN wallet format (should start with 'R' and be 34 characters)
-        const rvnWallet = data.rvnwallet.trim();
-        if (!rvnWallet.startsWith('R') || rvnWallet.length !== 34) {
-            validationResult.missingFields.push("RVN Wallet (Format Invalid)");
-            validationResult.issues.push(`RVN Wallet format issue: should start with 'R' and be 34 characters, got '${rvnWallet}' (${rvnWallet.length} chars)`);
-            validationResult.isValid = false;
-        }
     }
     
     logDebug("Validation result: " + JSON.stringify(validationResult));
@@ -711,11 +703,10 @@ function getUserInfo() {
                             ${validation.missingFields.map(field => `<li><strong>${field}</strong></li>`).join('')}
                         </ul>
                         
-                        ${rvnWalletMissing ?
+                        ${rvnWalletMissing ? 
                             `<div style="background-color: rgba(220, 53, 69, 0.1); padding: 10px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #dc3545;">
                                 <p style="margin: 0; font-weight: bold; color: #dc3545;">🔑 RVN Wallet Wajib Diisi!</p>
                                 <p style="margin: 5px 0 0 0; font-size: 14px;">Untuk pembayaran Ravencoin, alamat RVN Wallet adalah wajib dan tidak boleh kosong.</p>
-                                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">Format: Harus dimulai dengan 'R' dan panjang 34 karakter (contoh: RKJpSmjTq5MPDaBx2ubTx1msVB2uZcKA5j)</p>
                             </div>` : ''}
                         
                         <div style="background-color: rgba(255, 193, 7, 0.2); padding: 10px; border-radius: 5px; margin-top: 15px;">
@@ -1226,23 +1217,21 @@ function checkPaymentStatus() {
         });
 }
 
-// Function to check Step 2 status with retry mechanism
-function checkStep2(retryCount = 0) {
+// Function to check Step 2 status
+function checkStep2() {
     if (!orderId || !verificationState.txid) return;
-
-    const maxRetries = 3;
-
+    
     // Update UI to show we're actively checking
     const step1Circle = document.getElementById('step1Circle');
     const step1Waiting = document.getElementById('step1Waiting');
     if (step1Circle) step1Circle.classList.add('processing');
     if (step1Waiting) {
         step1Waiting.style.display = 'block';
-        step1Waiting.innerHTML = `Checking blockchain for transaction confirmation... ${retryCount > 0 ? `(Retry ${retryCount}/${maxRetries})` : 'Please wait.'}`;
+        step1Waiting.innerHTML = 'Checking blockchain for transaction confirmation... Please wait.';
     }
-
-    logDebug(`Checking Step 2 with txid: ${verificationState.txid} (attempt ${retryCount + 1})`);
-
+    
+    logDebug("Checking Step 2 with txid: " + verificationState.txid);
+    
     fetch(`${API_URL}/api/crowdfunding/ravencoin/checkStep2/${orderId}?txid=${verificationState.txid}`)
         .then(response => {
             if (!response.ok) {
@@ -1252,44 +1241,32 @@ function checkStep2(retryCount = 0) {
         })
         .then(data => {
             logDebug("Step 2 response: " + JSON.stringify(data));
-
+            
             if (data.step2Complete) {
                 logDebug("Step 2 complete, transaction confirmed in blockchain");
                 verificationState.step2Complete = true;
                 const step2Circle = document.getElementById('step2Circle');
                 if (step2Circle) step2Circle.classList.add('complete');
-
+                
                 // No waiting - proceed directly to step 3
                 const step1Circle = document.getElementById('step1Circle');
                 const step1Waiting = document.getElementById('step1Waiting');
                 if (step1Circle) step1Circle.classList.remove('processing');
                 if (step1Waiting) step1Waiting.style.display = 'none';
-
+                
                 // Check step 3 directly now
                 checkStep3();
             } else {
                 logDebug("Step 2 not complete yet, still waiting for blockchain confirmation");
                 // If Step 2 not complete, check again in 5 seconds
-                setTimeout(() => checkStep2(0), 5000); // Reset retry count for normal polling
+                setTimeout(checkStep2, 5000);
             }
         })
         .catch(error => {
-            logDebug(`Error checking step 2 (attempt ${retryCount + 1}): ${error.message}`);
+            logDebug("Error checking step 2: " + error.message);
             console.error('Error checking step 2:', error);
-
-            if (retryCount < maxRetries) {
-                // Retry with exponential backoff
-                const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
-                logDebug(`Retrying step 2 check in ${delay}ms...`);
-                setTimeout(() => checkStep2(retryCount + 1), delay);
-            } else {
-                // Max retries reached, show error and continue polling with longer interval
-                logDebug("Max retries reached for step 2, continuing with longer polling interval");
-                if (step1Waiting) {
-                    step1Waiting.innerHTML = 'Network issues detected. Continuing to check... Please wait.';
-                }
-                setTimeout(() => checkStep2(0), 15000); // Continue checking with 15s interval
-            }
+            // Try again after a delay
+            setTimeout(checkStep2, 10000);
         });
 }
 
