@@ -15,3 +15,4 @@
 1. QRIS: Hanya dapat digunakan oleh pendana setelah mendapatkan dana dari client sesuai yang sudah di implementasikan di [https://github.com/domyid/proyek](https://github.com/domyid/proyek). Setiap usaha client harus terdaftar dan terverifikasi di Google Maps dengan status 'Business Profile' aktif.
 2. Blockchain(ini adalah pilihan selain menggunakan qris(jika anda malas untuk berkomunikasi ke client)): dana berasal dari mining di infrastruktur klien atau tim pengembang. bisa menggunakan mbc dan rvn coin
 3. Persyaratan client Implementor Minimal 1 klien per proyek, tetapi disarankan lebih untuk optimalisasi hasil dan Klien harus aktif berkontribusi sesuai ketentuan.
+4. data ini akan dijadikan untuk penelitian
